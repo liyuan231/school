@@ -2,6 +2,7 @@ package com.school.utils;
 
 import com.school.dao.UserMapper;
 import com.school.dao.UsertoroleMapper;
+import com.school.exception.EmailNotFoundException;
 import com.school.exception.ExcelDataException;
 import com.school.model.User;
 import com.school.model.UserExample;
@@ -12,7 +13,6 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.security.crypto.password.MessageDigestPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,7 +54,7 @@ public class FileUtil {
      * @param file   该文件
      * @param format 该文件后缀，以区分该文件是xls或xlsx
      */
-    public void importExcelToDb(MultipartFile file, String format) throws Exception {
+    public void importExcelToDb(MultipartFile file, String format) throws Exception, ExcelDataException, EmailNotFoundException {
 //        PasswordEncoder md5PasswordEncoder = new MessageDigestPasswordEncoder("MD5");
         Workbook workbook = null;
         if (format.equals(".xlsx")) {
@@ -117,7 +117,7 @@ public class FileUtil {
                 userExample.createCriteria().andUsernameEqualTo(user.getUsername());
                 User userInDb = userMapper.selectOneByExampleSelective(userExample);
                 Usertorole usertorole = new Usertorole();
-                usertorole.setRoleid(1);
+                usertorole.setRoleid(RoleEnum.USER.value());
                 usertorole.setUserid(userInDb.getId());
                 usertoroleMapper.insert(usertorole);//插入用户-角色对应表
             }

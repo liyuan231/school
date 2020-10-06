@@ -1,6 +1,8 @@
 package com.school.controller.admin;
 
+import com.school.exception.*;
 import com.school.model.Likes;
+import com.school.model.Sign;
 import com.school.service.impl.LikeServiceImpl;
 import com.school.utils.ResponseUtil;
 import io.swagger.annotations.Api;
@@ -15,7 +17,7 @@ import java.util.List;
 
 @RestController("adminLikeController")
 @RequestMapping("/api/admin/like")
-@Api(value = "管理端管理意向",tags = "管理端意向")
+@Api(value = "管理端管理意向", tags = "管理端意向")
 public class AdminLikeController {
     @Autowired
     private LikeServiceImpl likeService;
@@ -26,11 +28,11 @@ public class AdminLikeController {
      * @param likedUserId
      * @return
      */
-    @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
     @PostMapping("/add/{likeUserId}/{likedUserId}")
     @ApiOperation(value = "添加一则意向", notes = "管理端手动牵线")
     public String like(@ApiParam(example = "2", value = "被喜欢的用户", required = true) @PathVariable("likedUserId") Integer likedUserId,
-                       @ApiParam(example = "1", value = "主动去喜欢其他用户的用户", required = true) @PathVariable("likeUserId") Integer likeUserId) {
+                       @ApiParam(example = "1", value = "主动去喜欢其他用户的用户", required = true) @PathVariable("likeUserId") Integer likeUserId) throws UserNotFoundException, UserNotCorrectException, LikesAlreadyExistException {
         likeService.like(likeUserId, likedUserId);
         return ResponseUtil.build(HttpStatus.OK.value(), "管理端手动牵线成功！", null);
     }
@@ -50,33 +52,37 @@ public class AdminLikeController {
 
 
     @PostMapping("/update/{id}/{likeUserId}/{likedUserId}")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
     @ApiOperation(value = "更新一则意向", notes = "管理端修改某一则意向，比如现在我喜欢女神，现在管理员强制修改成女神喜欢我")
     public Object update(@ApiParam(example = "1", value = "待修改的意向的id") @PathVariable("id") Integer id,
-                         @ApiParam(example = "1", value = "主动去喜欢的用户id") Integer likeUserId,
-                         @ApiParam(example = "2", value = "被喜欢的用户的id") Integer likedUserId) {
+                         @ApiParam(example = "1", value = "主动去喜欢的用户id")@PathVariable("likeUserId") Integer likeUserId,
+                         @ApiParam(example = "2", value = "被喜欢的用户的id")@PathVariable("likedUserId") Integer likedUserId) throws UserLikesNotCorrespondException, LikesNotFoundException {
         likeService.update(id, likeUserId, likedUserId);
         return ResponseUtil.build(HttpStatus.OK.value(), "更新一则意向成功！", null);
     }
 
-//    @PostMapping("/create")
-//    @ApiOperation("除id外其他选传")
-//    public Object create(@RequestBody Likes like) {
-//        likeService.add(like);
-//        return ResponseUtil.build(HttpStatus.OK.value(), "添加一则意向成功！", null);
-//    }
-
     @ApiOperation(value = "删除一则意向", notes = "根据id删除一则意向")
     @DeleteMapping("/delete/{id}")
-    public Object delete(@ApiParam(example = "1", value = "该则意向的id") @PathVariable("id") Integer id) {
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
+    public Object delete(@ApiParam(example = "1", value = "该则意向的id") @PathVariable("id") Integer id) throws UserLikesNotCorrespondException, LikesNotFoundException {
         likeService.deleteById(id);
         return ResponseUtil.build(HttpStatus.OK.value(), "删除一则意向成功！", null);
     }
 
     @ApiOperation(value = "匹配", notes = "双向匹配，我对他有意向，他对我也有意向，就进行匹配")
     @GetMapping("/match")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
     public Object match() {
         List<Likes> matchs = likeService.match();
         return ResponseUtil.build(HttpStatus.OK.value(), "匹配意向成功！", matchs);
+    }
+
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
+    @ApiOperation("获取所有意向")
+    public String all() {
+        List<Likes> users = likeService.queryAll();
+        return ResponseUtil.build(HttpStatus.OK.value(), "获取所有意向成功！", users);
     }
 
 }

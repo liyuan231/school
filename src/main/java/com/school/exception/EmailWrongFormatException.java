@@ -1,11 +1,11 @@
 package com.school.exception;
 
-public class EmailWrongFormatException extends IllegalArgumentException{
+public class EmailWrongFormatException extends Throwable{
     public EmailWrongFormatException() {
     }
 
-    public EmailWrongFormatException(String s) {
-        super(s);
+    public EmailWrongFormatException(String message) {
+        super(message);
     }
 
     public EmailWrongFormatException(String message, Throwable cause) {
@@ -14,5 +14,9 @@ public class EmailWrongFormatException extends IllegalArgumentException{
 
     public EmailWrongFormatException(Throwable cause) {
         super(cause);
+    }
+
+    public EmailWrongFormatException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

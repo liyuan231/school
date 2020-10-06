@@ -1,11 +1,11 @@
 package com.school.exception;
 
-public class FileFormattingException extends IllegalArgumentException {
+public class FileFormattingException extends Throwable {
     public FileFormattingException() {
     }
 
-    public FileFormattingException(String s) {
-        super(s);
+    public FileFormattingException(String message) {
+        super(message);
     }
 
     public FileFormattingException(String message, Throwable cause) {
@@ -14,5 +14,9 @@ public class FileFormattingException extends IllegalArgumentException {
 
     public FileFormattingException(Throwable cause) {
         super(cause);
+    }
+
+    public FileFormattingException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

@@ -1,5 +1,7 @@
 package com.school.controller.admin;
 
+import com.school.exception.EmailWrongFormatException;
+import com.school.exception.UsernameNullPointerException;
 import com.school.service.impl.EmailServiceImpl;
 import com.school.utils.AssertUtil;
 import com.school.utils.ResponseUtil;
@@ -33,7 +35,7 @@ public class AdminEmailController {
     @ApiOperation("修改系统邮箱")
     public String modifySystemEmail(@ApiParam(example = "123@qq.com", value = "系统邮箱账号") @RequestParam("userName") String username,
                                     @ApiParam(example = "123456", value = "开启POP3后获得的授权码") @RequestParam("code") String code,
-                                    HttpServletRequest request) {
+                                    HttpServletRequest request) throws EmailWrongFormatException, UsernameNullPointerException {
         logger.info("[" + request.getRemoteAddr() + "] 管理员修改默认系统邮箱！");
         Assert.notNull(code, "管理端设置系统的邮箱的授权码不应为空！");
         AssertUtil.isValidMail(username, "设置的系统邮箱不能为空！");

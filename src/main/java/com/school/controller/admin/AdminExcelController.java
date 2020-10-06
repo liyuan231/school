@@ -1,6 +1,9 @@
 package com.school.controller.admin;
 
 import com.school.component.security.UserServiceImpl;
+import com.school.exception.EmailNotFoundException;
+import com.school.exception.ExcelDataException;
+import com.school.exception.FileFormattingException;
 import com.school.model.User;
 import com.school.utils.AssertUtil;
 import com.school.utils.FileUtil;
@@ -29,7 +32,7 @@ public class AdminExcelController {
     @PostMapping("/importExcel")
     @ApiOperation(value = "导入用户信息", notes = "，但对excel的字段名有严格要求，仅支持.xls以及.xlsx，请直接和我讨论这一块，支持多文件传入，就是一个表单有多个文件的input框")
     public String uploadFile(@ApiParam(value = "导入的excel文件",example = "test.xlsx") @RequestParam("file") List<MultipartFile> files,
-                             HttpServletRequest request) throws Exception {
+                             HttpServletRequest request) throws Exception, FileFormattingException, EmailNotFoundException, ExcelDataException {
         int count = 0;
         for (int i = 0; i < files.size(); i++) {
             if (!files.get(i).isEmpty()) {

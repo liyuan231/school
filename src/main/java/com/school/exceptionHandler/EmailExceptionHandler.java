@@ -25,23 +25,23 @@ public class EmailExceptionHandler {
     @ExceptionHandler(EmailVerificationCodeNullPointerException.class)
     public String emailVerificationCodeNullPointerException(HttpServletRequest request, Exception e) throws JsonProcessingException {
         logger.info("[" + request.getRemoteAddr() + "] ERROR " + e.getMessage());
-        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(),  e.getMessage());
     }
 
     @ExceptionHandler(UsernameNullPointerException.class)
     public String usernameNullPointerException(HttpServletRequest request, Exception e) throws JsonProcessingException {
         logger.info("[" + request.getRemoteAddr() + "] ERROR " + e.getMessage());
-        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(),  e.getMessage());
     }
     @ExceptionHandler(EmailWrongFormatException.class)
     public String emailWrongFormatException(HttpServletRequest request,Exception e) throws JsonProcessingException {
         logger.info("[" + request.getRemoteAddr() + "] ERROR " + e.getMessage());
-        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(),  e.getMessage());
     }
 
     @ExceptionHandler(EmailNotFoundException.class)
     public String emailNotFoundException(HttpServletRequest request,Exception e) throws JsonProcessingException {
         logger.info("[" + request.getRemoteAddr() + "] ERROR " + e.getMessage());
-        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(),  e.getMessage());
     }
 }

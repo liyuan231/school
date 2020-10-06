@@ -1,6 +1,6 @@
 package com.school.exception;
 
-public class UsernameAlreadyExistException extends Exception{
+public class UsernameAlreadyExistException extends Throwable{
     public UsernameAlreadyExistException() {
     }
 

@@ -1,8 +1,7 @@
 package com.school.component.jwt;
 
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.school.utils.JsonUtil;
-import net.minidev.json.JSONObject;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
@@ -38,7 +37,7 @@ public class JwtPayloadBuilder {
     /**
      * 签发时间
      */
-    private LocalDateTime issueAt ;
+    private LocalDateTime issueAt;
     /**
      * 权限集
      */
@@ -81,13 +80,13 @@ public class JwtPayloadBuilder {
     }
 
     public String builder() throws JsonProcessingException {
-        this.issueAt =  LocalDateTime.now();
+        this.issueAt = LocalDateTime.now();
         payload.put("issuer", issuer);
         payload.put("subscriber", subscriber);
         payload.put("audience", audience);
         payload.put("expiration", this.expiration.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         payload.put("issueAt", issueAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        payload.put("roles", JsonUtil.parseObjectToJsonString(roles));
+        payload.put("roles", JSONObject.toJSONString(roles));
         if (!CollectionUtils.isEmpty(additional)) {
             payload.putAll(additional);
         }

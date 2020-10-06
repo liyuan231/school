@@ -1,6 +1,7 @@
 package com.school.exceptionHandler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.school.exception.UserNotCorrectException;
 import com.school.exception.UserNotFoundException;
 import com.school.exception.UsernameAlreadyExistException;
 import com.school.utils.ResponseUtil;
@@ -18,17 +19,23 @@ public class UserExceptionHandler {
 
     @ExceptionHandler(UserNotFoundException.class)
     public String userNotFoundException(HttpServletRequest request,
-                                        Exception e) {
+                                        UserNotFoundException e) {
         logger.info("[" + request.getRemoteAddr() + "] ERROR " + e.getMessage());
-        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(),  e.getMessage());
 
     }
 
     @ExceptionHandler(UsernameAlreadyExistException.class)
     public String usernameAlreadyExistException(HttpServletRequest request,
-                                                Exception e){
+                                                UsernameAlreadyExistException e){
         logger.info("[" + request.getRemoteAddr() + "] ERROR " + e.getMessage());
-        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(),  e.getMessage());
+    }
+    @ExceptionHandler(UserNotCorrectException.class)
+    public String userNotCorrectException(HttpServletRequest request,
+                                          UserNotCorrectException e){
+        logger.info("[" + request.getRemoteAddr() + "] ERROR " + e.getMessage());
+        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(),  e.getMessage());
     }
 
 }

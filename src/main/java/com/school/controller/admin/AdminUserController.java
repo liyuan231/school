@@ -1,6 +1,7 @@
 package com.school.controller.admin;
 
 import com.school.component.security.UserServiceImpl;
+import com.school.exception.UserNotFoundException;
 import com.school.exception.UsernameAlreadyExistException;
 import com.school.model.User;
 import com.school.utils.ResponseUtil;
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,6 +42,7 @@ public class AdminUserController {
     }
 
     @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
     @ApiOperation("获取所有用户")
     public String all() {
         List<User> users = userService.queryAll();
@@ -48,7 +51,9 @@ public class AdminUserController {
 
 
     @PostMapping("/add")
-    @ApiOperation(value = "添加一个用户（讨论）", notes = "后台手动添加一个用户，添加一个用户至少要有userName,schoolName,password")
+    //TODO 暂时开启
+//    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
+    @ApiOperation(value = "添加一个用户", notes = "后台手动添加一个用户，添加一个用户至少要有userName,schoolName,password")
     public Object create(@ApiParam(example = "123@qq.com", value = "用户名即为邮箱号") @RequestParam("userName") String username,
                          @ApiParam(example = "123456", value = "前端加过密的密码") @RequestParam("password") String password,
                          @ApiParam(example = "GDUFS", value = "学校名") @RequestParam("schoolName") String schoolName,
@@ -58,19 +63,20 @@ public class AdminUserController {
     }
 
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
     @ApiOperation(value = "删除用户", notes = "依据传入的id删除用户")
-    public Object delete(@PathVariable("id") Integer id) {
+    public Object delete(@PathVariable("id") Integer id) throws UserNotFoundException {
         userService.deleteById(id);
         return ResponseUtil.build(HttpStatus.OK.value(), "删除一个用户成功!", null);
-
     }
 
     @PostMapping("/update")
-    @ApiOperation(value = "更新用户信息（讨论）", notes = "更新用户信息,用户名，即邮箱是否应该修改？")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
+    @ApiOperation(value = "更新用户信息", notes = "更新用户信息,用户名，即邮箱是否应该修改？")
     public Object update(@ApiParam(example = "1", value = "待修改的用户的id") @RequestParam("id") Integer id,
                          @ApiParam(example = "123456", value = "待修改的用户的密码") @RequestParam("password") String password,
                          @ApiParam(example = "广外", value = "待修改的用户的学校名") @RequestParam("schoolName") String schoolName,
-                         @ApiParam(example = "2", value = "用户的等级，1-》管理员，2-》普通用户") @RequestParam(required = false, value = "level", defaultValue = "2") Integer level) {
+                         @ApiParam(example = "2", value = "用户的等级，1-》管理员，2-》普通用户") @RequestParam(required = false, value = "level", defaultValue = "2") Integer level) throws UserNotFoundException {
         userService.update(id, password, schoolName, level);
         return ResponseUtil.build(HttpStatus.OK.value(), "修改一个用户成功!", null);
     }

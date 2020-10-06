@@ -5,20 +5,27 @@ import com.school.dao.RoleMapper;
 import com.school.dao.RoletoauthoritiesMapper;
 import com.school.dao.UserMapper;
 import com.school.dao.UsertoroleMapper;
+import com.school.exception.UserNotFoundException;
 import com.school.exception.UsernameAlreadyExistException;
 import com.school.model.*;
+import com.school.service.impl.PicsServiceImpl;
+import com.school.service.impl.UserToRoleServiceImpl;
+import com.school.utils.FileEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,12 +48,14 @@ public class UserServiceImpl implements UserDetailsService {
     private RoletoauthoritiesMapper roletoauthoritiesMapper;
     @Autowired
     private PasswordEncoder bCryptPasswordEncoder;
+    @Autowired
+    private PicsServiceImpl picsService;
+    @Autowired
+    private UserToRoleServiceImpl userToRoleService;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserExample userExample = new UserExample();
-        userExample.createCriteria().andUsernameEqualTo(username);
-        User user = userMapper.selectOneByExampleSelective(userExample);
+        User user = findByUsername(username);
         if (user == null) {
             throw new UsernameNotFoundException("用户名不存在！");
         }
@@ -75,29 +84,11 @@ public class UserServiceImpl implements UserDetailsService {
         return new org.springframework.security.core.userdetails.User(username, encodedPasswordPrefix + user.getPassword(), roles_);
     }
 
-
-    public List<User> querySelective(Integer userId,
-                                     Integer page,
-                                     Integer limit,
-                                     String sort,
-                                     String order) {
-        UserExample userExample = new UserExample();
-        UserExample.Criteria criteria = userExample.createCriteria();
-        if (!StringUtils.isEmpty(userId)) {
-            criteria.andIdEqualTo(userId);
-        }
-        criteria.andDeletedEqualTo(false);
-        if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {
-            userExample.setOrderByClause(sort + " " + order);
-        }
-        PageHelper.startPage(page, limit);
-        return userMapper.selectByExampleSelective(userExample);
-    }
-
     public User findByUsername(String username) {
         UserExample userExample = new UserExample();
         userExample.createCriteria().andUsernameEqualTo(username);
-        return userMapper.selectOneByExampleSelective(userExample);
+        User user = userMapper.selectOneByExampleSelective(userExample);
+        return user;
     }
 
 
@@ -112,12 +103,16 @@ public class UserServiceImpl implements UserDetailsService {
         userMapper.insertSelective(user);
     }
 
-    public void delete(User user) {
+    public void delete(User user) throws UserNotFoundException {
         user.setDeleted(true);
         update(user);
     }
 
-    public int update(User user) {
+    public int update(User user) throws UserNotFoundException {
+        User byId = findById(user.getId());
+        if (byId == null) {
+            throw new UserNotFoundException("用户不存在！");
+        }
         UserExample userExample = new UserExample();
         UserExample.Criteria criteria = userExample.createCriteria();
         if (!StringUtils.isEmpty(user.getUsername())) {
@@ -133,10 +128,19 @@ public class UserServiceImpl implements UserDetailsService {
         return userMapper.updateByExampleSelective(user, userExample);
     }
 
+    public User findById(Integer id) {
+        UserExample userExample = new UserExample();
+        userExample.createCriteria().andIdEqualTo(id);
+        User user = userMapper.selectOneByExampleSelective(userExample);
+        return user;
+    }
 
     public List<User> queryAll() {
         UserExample userExample = new UserExample();
-        return userMapper.selectByExample(userExample);
+        userExample.createCriteria().andDeletedEqualTo(false);
+        List<User> users = userMapper.selectByExample(userExample);
+
+        return users;
     }
 
     public void add(User user, Integer level) throws UsernameAlreadyExistException {
@@ -146,16 +150,6 @@ public class UserServiceImpl implements UserDetailsService {
         usertorole.setRoleid(level);
         usertorole.setUserid(byUsername.getId());
         usertoroleMapper.insertSelective(usertorole);
-    }
-
-    public void update(User user, Integer level) {
-        update(user);
-        User byUsername = findByUsername(user.getUsername());
-        UsertoroleExample usertoroleExample = new UsertoroleExample();
-        usertoroleExample.createCriteria().andUseridEqualTo(byUsername.getId());
-        Usertorole usertorole = usertoroleMapper.selectOneByExample(usertoroleExample);
-        usertorole.setRoleid(level);
-        usertoroleMapper.updateByPrimaryKey(usertorole);
     }
 
     public List<User> querySelective(Integer userId,
@@ -176,12 +170,12 @@ public class UserServiceImpl implements UserDetailsService {
         if (!StringUtils.isEmpty(schoolName)) {
             criteria.andSchoolnameLike("%" + schoolName + "%");
         }
-
         if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {
             userExample.setOrderByClause(sort + " " + order);
         }
         PageHelper.startPage(page, limit);
-        return userMapper.selectByExampleSelective(userExample);
+        List<User> users = userMapper.selectByExampleSelective(userExample);
+        return users;
     }
 
     public void add(String username, String password, String schoolName, Integer level) throws UsernameAlreadyExistException {
@@ -189,20 +183,34 @@ public class UserServiceImpl implements UserDetailsService {
         user.setPassword(password);
         user.setUsername(username);
         user.setSchoolname(schoolName);
+        user.setAvatarurl("default.png");
         add(user, level);
+//        picsService.insert(byUsername.getId(), "default.png", FileEnum.AVATAR_URL.value());
     }
 
-    public void deleteById(Integer id) {
+    public void deleteById(Integer id) throws UserNotFoundException {
         User user = new User();
         user.setId(id);
         delete(user);
     }
 
-    public void update(Integer id, String password, String schoolName, Integer level) {
+    public void update(Integer id, String password, String schoolName, Integer level) throws UserNotFoundException {
         User user = new User();
         user.setId(id);
-        user.setPassword(bCryptPasswordEncoder.encode(password));
+        user.setPassword(password);
         user.setSchoolname(schoolName);
-        update(user, level);
+        update(user);
+        userToRoleService.updateByUserId(user.getId(), level);
+    }
+
+//    public void add(String username, String password, String schoolName, Integer level, MultipartFile file) throws UsernameAlreadyExistException, IOException, UserNotFoundException {
+//        add(username, password, schoolName, level);
+//        User user = findByUsername(username);
+//    }
+
+    public User retrieveUserByToken() {
+        UserDetails principal = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = findByUsername(principal.getUsername());
+        return user;
     }
 }

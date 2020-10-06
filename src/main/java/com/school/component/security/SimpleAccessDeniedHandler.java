@@ -15,8 +15,7 @@ import java.io.IOException;
 public class SimpleAccessDeniedHandler implements AccessDeniedHandler {
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String build = ResponseUtil.build(request.getRequestURI(), HttpStatus.FORBIDDEN.value(), "权限不足!");
+        String build = ResponseUtil.build(request.getRequestURI(), HttpStatus.FORBIDDEN.value(), accessDeniedException.getMessage());
         ResponseUtil.printlnInfo(response, build);
     }
 }

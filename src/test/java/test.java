@@ -1,3 +1,5 @@
+import com.school.exception.EmailNotFoundException;
+import com.school.exception.ExcelDataException;
 import com.school.service.impl.EmailServiceImpl;
 import com.school.utils.FileUtil;
 import net.jodah.expiringmap.ExpiringMap;
@@ -50,14 +52,14 @@ public class test {
     private EmailServiceImpl emailService;
 
 //    @Test
-    public void test2() throws Exception {
+    public void test2() throws Exception, EmailNotFoundException {
 //        emailService.modifySystemEmail("2812329425@qq.com","ilkanyshlsqcdefc");
         emailService.sendVerificationCode("1987151116@qq.com");
     }
 
 
 //    @Test
-    public void test3() throws Exception {
+    public void test3() throws Exception, EmailNotFoundException, ExcelDataException {
         InputStream inputStream = new DataInputStream(new BufferedInputStream(new FileInputStream("C:\\Users\\Administrator\\Desktop\\test.xlsx")));
         MultipartFile multipartFile = new MockMultipartFile("name", inputStream);
         FileUtil fileUtil = new FileUtil();
@@ -70,6 +72,13 @@ public class test {
         MessageDigestPasswordEncoder md5PasswordEncoder = new MessageDigestPasswordEncoder("MD5");
         System.out.println(md5PasswordEncoder.encode("504148"));
 //        System.out.println(md5PasswordEncoder.matches("123456", "e10adc3949ba59abbe56e057f20f883e"));
+    }
+
+    @Test
+    public void test6(){
+        String name = "1.png";
+        int i = name.lastIndexOf(".");
+        System.out.println(name.substring(i+1));
     }
 
 

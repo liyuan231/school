@@ -1,6 +1,10 @@
 package com.school.controller.admin;
 
+import com.school.exception.SignNotFoundException;
+import com.school.exception.UserNotFoundException;
+import com.school.exception.UserSignCorrespondException;
 import com.school.model.Sign;
+import com.school.model.User;
 import com.school.service.impl.SignServiceImpl;
 import com.school.utils.ResponseUtil;
 import io.swagger.annotations.Api;
@@ -8,6 +12,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +26,7 @@ public class AdminSignController {
 
     @ApiOperation(value = "添加一则签约", notes = "管理员手动添加签约")
     @PostMapping("/add/{signUserId}/{signedUserId}")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
     public String sign(@ApiParam(example = "1", value = "主动签约方") @PathVariable("signUserId") Integer signUserId,
                        @ApiParam(example = "2", value = "被签约方") @PathVariable("signedUserId") Integer signedUserId) {
         signService.sign(signUserId, signedUserId);
@@ -29,7 +35,7 @@ public class AdminSignController {
 
     @GetMapping("/list")
     @ApiOperation(value = "查询签约", notes = "主要用于管理端分页显示，也是为了支持管理端的搜索功能，搜索某一用户喜欢谁或被谁意向")
-    public Object list(@ApiParam(example = "1", value = "查询该则签约的id") Integer id,
+    public Object list(@ApiParam(example = "1", value = "查询该则签约的id") @RequestParam(value = "id",required = false) Integer id,
                        @ApiParam(example = "1", value = "查询该用户主动和谁签过约") @RequestParam(value = "signUserId", required = false) Integer signUserId,
                        @ApiParam(example = "2", value = "查询该用户被动被谁签约过") @RequestParam(required = false, value = "signedUserId") Integer signedUserId,
                        @ApiParam(example = "1", value = "分页使用，要第几页的数据") @RequestParam(defaultValue = "1") Integer page,
@@ -41,18 +47,27 @@ public class AdminSignController {
     }
 
     @PostMapping("/update/{id}/{signUserId}/{signedUserId}")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
     @ApiOperation(value = "更新一则签约", notes = "管理员可强制修改签约的内容，比如原本是我主动和女神签约，现在被改成了女神和我主动签约")
     public Object update(@ApiParam(example = "1",value = "要修改一则签约，肯定要有该签约的唯一标识，即他的id")@PathVariable("id") Integer id,
                          @ApiParam(example = "1",value = "那么对于该则记录你想把主动签约方改成谁")@PathVariable("signUserId") Integer signUserId,
-                         @ApiParam(example = "1",value = "那么对于该则记录，被签约方想改成谁")@PathVariable("signedUserId") Integer signedUserId) {
+                         @ApiParam(example = "1",value = "那么对于该则记录，被签约方想改成谁")@PathVariable("signedUserId") Integer signedUserId) throws UserSignCorrespondException, SignNotFoundException, UserNotFoundException {
         signService.update(id,signUserId,signedUserId);
         return ResponseUtil.build(HttpStatus.OK.value(), "更新一则签约成功!", null);
     }
 
     @DeleteMapping("/delete/{id}")
     @ApiOperation(value = "删除一则签约",notes = "依据id删除一则签约")
-    public Object delete(@PathVariable("id") Integer id) {
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
+    public Object delete(@PathVariable("id") Integer id) throws UserSignCorrespondException, SignNotFoundException, UserNotFoundException {
         signService.deleteById(id);
         return ResponseUtil.build(HttpStatus.OK.value(), "删除一则签约成功!", null);
+    }
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
+    @ApiOperation("获取所有签约")
+    public String all() {
+        List<Sign> users = signService.queryAll();
+        return ResponseUtil.build(HttpStatus.OK.value(), "获取所有签约信息成功！", users);
     }
 }

@@ -2,8 +2,8 @@ package com.school.component.security;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.school.component.jwt.JwtTokenGenerator;
+import com.school.exception.InvalidTokenException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -61,8 +61,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private void authenticationTokenHandle(String jwtToken, HttpServletRequest request) throws JsonProcessingException {
-        JSONObject jsonObject = jwtTokenGenerator.decodeAndVerify(jwtToken);
+    private void authenticationTokenHandle(String jwtToken, HttpServletRequest request) throws InvalidTokenException {
+        JSONObject jsonObject = null;
+        try {
+            jsonObject = jwtTokenGenerator.decodeAndVerify(jwtToken);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidTokenException("token解析错误！");
+        }
         if (Objects.nonNull(jsonObject)) {
             Collection<GrantedAuthority> roles_ = new ArrayList<>();
             JSONArray authoritiesJSONArray = jsonObject.getJSONArray("roles");
@@ -70,7 +75,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             while (iterator.hasNext()) {
                 String next = (String) iterator.next();
-                roles_.add((GrantedAuthority) () -> "ROLE_"+next);
+                roles_.add((GrantedAuthority) () -> "ROLE_" + next);
             }
             String username = jsonObject.getString("audience");
             User user = new User(username, "[PASSWORD]", roles_);

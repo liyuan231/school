@@ -2,6 +2,8 @@ package com.school.service.impl;
 
 import com.school.dao.UserMapper;
 import com.school.exception.EmailNotFoundException;
+import com.school.exception.EmailVerificationCodeIllegalArgumentException;
+import com.school.exception.EmailVerificationCodeNullPointerException;
 import com.school.model.User;
 import com.school.model.UserExample;
 import com.school.utils.AssertUtil;
@@ -55,7 +57,6 @@ public class EmailServiceImpl {
 //    public void setSystemEmail(String systemEmail) {
 //        this.systemEmail = systemEmail;
 //    }
-
     public void sendVerificationCode(String username) throws EmailNotFoundException {
         //生成随机的验证码
         StringBuilder code = new StringBuilder();
@@ -66,13 +67,13 @@ public class EmailServiceImpl {
         StringBuilder context = new StringBuilder();
         context.append("XXX验证码: " + code).append("\n").append("三分钟内有效");
 
-        send(username,"XXX验证码",context.toString());
+        send(username, "XXX验证码", context.toString());
     }
 
 
     public void resetPassword(String username,
                               String code,
-                              String newPassword) {
+                              String newPassword) throws EmailVerificationCodeNullPointerException, EmailVerificationCodeIllegalArgumentException {
         String codeInCache = usernameToCodeMap.get(username);
         AssertUtil.emailVerificationCodeNotNull(codeInCache, "验证码不存在！");
         AssertUtil.emailVerificationCodeEquals(code.trim().equals(codeInCache), "验证码错误！");
@@ -117,22 +118,17 @@ public class EmailServiceImpl {
     }
 
 
-
-    public void sendDefaultPassword(User user) throws Exception {
-        send(user.getUsername(),"XXX临时默认密码",user.getPassword());
+    public void sendDefaultPassword(User user) throws Exception, EmailNotFoundException {
+        send(user.getUsername(), "XXX临时默认密码", user.getPassword());
     }
 
 
-    public void send(String to,String subject,String context) throws EmailNotFoundException{
+    public void send(String to, String subject, String context) throws EmailNotFoundException {
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
         simpleMailMessage.setFrom(mailProperties.getUsername());//系统邮箱
         simpleMailMessage.setSubject(subject);
         simpleMailMessage.setText(context);
         simpleMailMessage.setTo(to);
-        try {
-            javaMailSenderImpl.send(simpleMailMessage);
-        }catch (EmailNotFoundException e){
-            throw e;
-        }
+        javaMailSenderImpl.send(simpleMailMessage);
     }
 }

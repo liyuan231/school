@@ -1,8 +1,13 @@
 package com.school.controller.client;
 
 import com.school.component.security.UserServiceImpl;
+import com.school.exception.*;
 import com.school.model.Likes;
+import com.school.model.Pics;
+import com.school.model.User;
 import com.school.service.impl.LikeServiceImpl;
+import com.school.service.impl.PicsServiceImpl;
+import com.school.utils.FileEnum;
 import com.school.utils.ResponseUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -10,10 +15,9 @@ import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedList;
 import java.util.List;
 
 @RestController
@@ -25,6 +29,8 @@ public class LikeController {
 
     @Autowired
     private UserServiceImpl userService;
+    @Autowired
+    private PicsServiceImpl picsService;
 
     /**
      * 传入当前用户喜欢的一方的userId
@@ -33,12 +39,10 @@ public class LikeController {
      * @return
      */
     @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
-    @PostMapping("/like")
+    @PostMapping("/like/{likedUserId}")
     @ApiOperation(value = "表明意向（需登录）", notes = "用户表明意向,添加一则意向记录")
-    public String like(@ApiParam(example = "1", value = "被表明意向的用户的id") @RequestParam("likedUserId") Integer likedUserId) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        com.school.model.User userInDb = userService.findByUsername(user.getUsername());
-        likeService.like(userInDb.getId(), likedUserId);
+    public String like(@ApiParam(example = "1", value = "被表明意向的用户的id") @PathVariable("likedUserId") Integer likedUserId) throws UserNotFoundException, UserNotCorrectException, LikesAlreadyExistException {
+        likeService.like(likedUserId);
         return ResponseUtil.build(HttpStatus.OK.value(), "表明意向成功！", null);
     }
 
@@ -55,32 +59,60 @@ public class LikeController {
         return ResponseUtil.build(HttpStatus.OK.value(), "获取意向列表成功！", list);
     }
 
-//    @ApiOperation(value = "更新一则意向",notes = "用户不小心点错了意向的学校")
-//    @PostMapping("/update")
-//    @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
-//    public Object update(@RequestBody Likes like) {
-//        likeService.update(like);
-//        return ResponseUtil.build(HttpStatus.OK.value(), "更新一则意向成功！", null);
-//    }
-
-    @ApiOperation(value = "删除一则意向", notes = "用户删除一则意向")
+    @ApiOperation(value = "删除", notes = "用户删除一则意向")
     @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
     @DeleteMapping("/delete/{id}")
-    public Object delete(@ApiParam(example = "1",value = "将被删除的那则意向的id") @PathVariable("id") Integer id) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        com.school.model.User userInDb = userService.findByUsername(user.getUsername());
-        likeService.deleteAndCheck(userInDb.getId(), id);
+    public Object delete(@ApiParam(example = "1", value = "将被删除的那则意向的id") @PathVariable("id") Integer id) throws UserLikesNotCorrespondException, LikesNotFoundException {
+        likeService.deleteById(id);
         return ResponseUtil.build(HttpStatus.OK.value(), "删除一则意向成功！", null);
     }
 
-    @ApiOperation(value = "匹配", notes = "看看谁对我有意向")
-    @GetMapping("/match")
+    @ApiOperation(value = "修改", notes = "用户删除一则意向")
     @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
-    public Object match() {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        com.school.model.User userInDb = userService.findByUsername(user.getUsername());
-        List<Likes> matchs = likeService.matchByLikedUserId(userInDb.getId());
-        return ResponseUtil.build(HttpStatus.OK.value(), "匹配意向成功！(她们为互相有意向，只不过仅结果集取其中一条，相当于去重)", matchs);
+    @DeleteMapping("/update/{id}/{likeUserId}/{likedUserId}")
+    public Object update(@ApiParam(example = "1", value = "将被修改的那则意向的id") @PathVariable("id") Integer id,
+                         @ApiParam(example = "1", value = "主动喜欢的用户") @PathVariable("likeUserId") Integer likeUserId,
+                         @ApiParam(example = "1", value = "被喜欢的用户") @PathVariable("likedUserId") Integer likedUserId) throws UserLikesNotCorrespondException, LikesNotFoundException {
+        likeService.update(id, likeUserId, likedUserId);
+        return ResponseUtil.build(HttpStatus.OK.value(), "删除一则意向成功！", null);
     }
 
+    @ApiOperation(value = "查询对我有意向的用户", notes = "看看谁对我有意向，同查询")
+    @GetMapping("/matchWhoLikesMe")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
+    public Object matchWhoLikesMe() {
+        List<Likes> matchs = likeService.matchByLikedUserId();
+        List<User> users = new LinkedList<>();
+        for (Likes match : matchs) {
+            User user = userService.findById(match.getLikeuserid());
+            users.add(user);
+        }
+        return ResponseUtil.build(HttpStatus.OK.value(), "获取对我有意向的用户成功！", users);
+    }
+
+    @GetMapping("/matchILikesWho")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
+    @ApiOperation(value = "查询我有意向的用户", notes = "获取我有意向的用户,同查询")
+    public Object matchILikesWho() {
+        List<Likes> matchs = likeService.matchByLikeUserId();
+        List<User> users = new LinkedList<>();
+        for (Likes match : matchs) {
+            User user = userService.findById(match.getLikeduserid());
+            users.add(user);
+        }
+        return ResponseUtil.build(HttpStatus.OK.value(), "获取我有意向的用户成功！", users);
+    }
+
+    @GetMapping("/match")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
+    @ApiOperation(value = "查询互相有意向的用户", notes = "获取我有意向的用户且对我也有意向，即互相喜欢的用户")
+    public Object match() {
+        List<Likes> matchs = likeService.matchByUserId();
+        List<User> users = new LinkedList<>();
+        for (Likes match : matchs) {
+            User user = userService.findById(match.getLikeduserid());
+            users.add(user);
+        }
+        return ResponseUtil.build(HttpStatus.OK.value(), "获取互相喜欢的用户们成功！", users);
+    }
 }

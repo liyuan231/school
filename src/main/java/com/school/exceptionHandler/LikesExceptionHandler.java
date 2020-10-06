@@ -1,36 +1,35 @@
 package com.school.exceptionHandler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.school.exception.FileFormattingException;
+import com.school.exception.LikesAlreadyExistException;
+import com.school.exception.LikesNotFoundException;
+import com.school.exception.UserLikesNotCorrespondException;
 import com.school.utils.ResponseUtil;
-import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import javax.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
-public class FileExceptionHandler {
+public class LikesExceptionHandler {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @ExceptionHandler(FileFormattingException.class)
-    public String fileFormattingException(HttpServletRequest request,
-                                          FileFormattingException e) {
-        logger.info("[" + request.getRemoteAddr() + "] ERROR " + e.getMessage());
-        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(), e.getMessage());
-    }
-    @ExceptionHandler(MissingServletRequestPartException.class)
-    public String missingServletRequestPartException(HttpServletRequest request,MissingServletRequestPartException e){
+    @ExceptionHandler(UserLikesNotCorrespondException.class)
+    public String userLikesNotCorrespondException(HttpServletRequest request, Exception e) {
         logger.info("[" + request.getRemoteAddr() + "] ERROR " + e.getMessage());
         return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(), e.getMessage());
     }
 
-    @ExceptionHandler(FileSizeLimitExceededException.class)
-    public String fileSizeLimitExceededException(HttpServletRequest request,MissingServletRequestPartException e){
+    @ExceptionHandler(LikesNotFoundException.class)
+    public String likesNotFoundException(HttpServletRequest request, LikesNotFoundException e) {
+        logger.info("[" + request.getRemoteAddr() + "] ERROR " + e.getMessage());
+        return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(), e.getMessage());
+    }
+
+    @ExceptionHandler(LikesAlreadyExistException.class)
+    public String likesAlreadyExistException(HttpServletRequest request, LikesAlreadyExistException e) {
         logger.info("[" + request.getRemoteAddr() + "] ERROR " + e.getMessage());
         return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(), e.getMessage());
     }

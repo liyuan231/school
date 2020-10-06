@@ -2,7 +2,6 @@ package com.school.component.jwt;
 
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.util.JSONPObject;
 import com.school.exception.JwtExpiredAuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.jwt.Jwt;
@@ -67,11 +66,12 @@ public class JwtTokenGenerator {
         return JwtHelper.encode(payload, signer).getEncoded();
     }
 
-    public JSONObject decodeAndVerify(String jwtToken) throws JsonProcessingException {
+    public JSONObject decodeAndVerify(String jwtToken) {
         Assert.hasText(jwtToken, "jwtToken should not be null!");
         RSAPublicKey rsaPublicKey = (RSAPublicKey) this.keyPair.getPublic();
         SignatureVerifier signatureVerifier = new RsaVerifier(rsaPublicKey);
-        Jwt jwt = JwtHelper.decodeAndVerify(jwtToken, signatureVerifier);
+        Jwt jwt = null;
+        jwt = JwtHelper.decodeAndVerify(jwtToken, signatureVerifier);
         String claims = jwt.getClaims();
         JSONObject jsonObject = JSONObject.parseObject(claims);
         String expiration = (String) jsonObject.get("expiration");

@@ -13,7 +13,6 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 @MapperScan("com.school.dao")
 @EnableTransactionManagement
 @EnableSwagger2
-//@EnableWebMvc //该注解会覆盖原有的springmvc的配置，需注意！！(完全没必要重写,springboot配的已经很好了)
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);

@@ -13,7 +13,7 @@ import java.io.IOException;
 public class SimpleAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-        String build = ResponseUtil.build(request.getRequestURI(), HttpStatus.UNAUTHORIZED.value(), "请先登录！");
+        String build = ResponseUtil.build(request.getRequestURI(), HttpStatus.UNAUTHORIZED.value(), authException.getMessage());
         ResponseUtil.printlnInfo(response, build);
     }
 }
