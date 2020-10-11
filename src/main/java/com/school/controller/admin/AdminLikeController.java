@@ -28,7 +28,7 @@ public class AdminLikeController {
      * @param likedUserId
      * @return
      */
-    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
+//    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
     @PostMapping("/add/{likeUserId}/{likedUserId}")
     @ApiOperation(value = "添加一则意向", notes = "管理端手动牵线")
     public String like(@ApiParam(example = "2", value = "被喜欢的用户", required = true) @PathVariable("likedUserId") Integer likedUserId,
@@ -78,7 +78,7 @@ public class AdminLikeController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
+//    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
     @ApiOperation("获取所有意向")
     public String all() {
         List<Likes> users = likeService.queryAll();

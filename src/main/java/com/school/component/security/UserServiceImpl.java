@@ -427,4 +427,76 @@ public class UserServiceImpl implements UserDetailsService {
         User user1 = new User();
         return method.invoke(user);
     }
+//分页查询
+    public List<User> querySelectiveAllByPage(Integer page,
+                                         Integer limit){
+        UserExample userExample = new UserExample();
+        userExample.createCriteria().andDeletedEqualTo(false);
+        if (page != null || limit != null) {
+            if (page == null) {
+                PageHelper.startPage(1, limit);
+            } else if (limit == null) {
+                PageHelper.startPage(page, 10);
+            } else {
+                PageHelper.startPage(page, limit);
+            }
+        }
+        List<User> users = userMapper.selectByExampleSelective(userExample);
+        PageInfo<User> pageInfo = new PageInfo<>(users);
+        return pageInfo.getList();
+    }
+//    学校信息模糊查询
+    public List<User> querySelectiveAllDim(String name){
+        UserExample userExample1 = new UserExample();
+        UserExample userExample2 = new UserExample();
+        UserExample userExample3 = new UserExample();
+        UserExample userExample4 = new UserExample();
+        UserExample userExample5 = new UserExample();
+        userExample1.createCriteria().andTelephoneLike("%" + name + "%");
+        userExample2.createCriteria().andSchoolnameLike("%" + name + "%");
+        userExample3.createCriteria().andContactLike("%" + name + "%");
+        userExample4.createCriteria().andEmailLike("%" + name + "%");
+        userExample5.createCriteria().andAddressLike("%" + name + "%");
+//        UserExample.Criteria criteria = userExample.createCriteria();
+//        criteria.andTelephoneLike("%" + name + "%");
+//        userExample.or(criteria.andSchoolnameLike("%" + name + "%"));
+//        userExample.or(criteria.andContactLike("%" + name + "%"));
+//        userExample.or(criteria.andAddressLike("%" + name + "%"));
+//        userExample.or(criteria.andEmailLike("%" + name + "%"));
+//        UserExample.Criteria criteria = userExample.createCriteria();
+//        criteria.andSchoolnameLike("%" + name + "%");
+        List<User> user1 = userMapper.selectByExampleSelective(userExample1);
+        List<User> user2 = userMapper.selectByExampleSelective(userExample2);
+        List<User> user3 = userMapper.selectByExampleSelective(userExample3);
+        List<User> user4 = userMapper.selectByExampleSelective(userExample4);
+        List<User> user5 = userMapper.selectByExampleSelective(userExample5);
+        Set set = new HashSet();
+        set.addAll(user1);
+        set.addAll(user2);
+        set.addAll(user3);
+        set.addAll(user4);
+        set.addAll(user5);
+        List<User> user = new ArrayList<>();
+        user.addAll(set);
+        return user;
+    }
+    public List<User> querySelectiveBySchoolnameDim(String schoolname,Integer page,
+                                                    Integer limit){
+        UserExample userExample = new UserExample();
+        userExample.createCriteria().andSchoolnameLike("%" + schoolname + "%");
+        if (page != null || limit != null) {
+            if (page == null) {
+                PageHelper.startPage(1, limit);
+            } else if (limit == null) {
+                PageHelper.startPage(page, 10);
+            } else {
+                PageHelper.startPage(page, limit);
+            }
+        }
+        List<User> users = userMapper.selectByExampleSelective(userExample);
+        PageInfo<User> pageInfo = new PageInfo<>(users);
+        return pageInfo.getList();
+    }
+
+
 }

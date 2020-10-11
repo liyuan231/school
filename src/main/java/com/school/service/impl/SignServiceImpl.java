@@ -160,7 +160,8 @@ public class SignServiceImpl {
         SignExample signExample = new SignExample();
         SignExample.Criteria criteria = signExample.createCriteria();
         User user = userService.retrieveUserByToken();
-        criteria.andSignuseridEqualTo(user.getId());
+//        criteria.andSignuseridEqualTo(user.getId());
+        criteria.andSignuseridEqualTo(1);
         criteria.andDeletedEqualTo(false);
         return signMapper.selectByExampleSelective(signExample);
     }
