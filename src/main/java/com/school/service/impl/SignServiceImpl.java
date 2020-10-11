@@ -1,6 +1,7 @@
 package com.school.service.impl;
 
 import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.school.component.security.UserServiceImpl;
 import com.school.dao.SignMapper;
 import com.school.exception.*;
@@ -80,8 +81,19 @@ public class SignServiceImpl {
         if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {
             signExample.setOrderByClause(sort + " " + order);
         }
-        PageHelper.startPage(page, limit);
-        return signMapper.selectByExampleSelective(signExample);
+        if (page != null || limit != null) {
+            if (page == null) {
+                PageHelper.startPage(1, limit);
+            } else if (limit == null) {
+                PageHelper.startPage(page, 10);
+            } else {
+                PageHelper.startPage(page, limit);
+            }
+        }
+        List<Sign> signs = signMapper.selectByExampleSelective(signExample);
+        PageInfo<Sign> signPageInfo = new PageInfo<>(signs);
+        return signPageInfo.getList();
+
     }
 
     public void add(Sign sign) {

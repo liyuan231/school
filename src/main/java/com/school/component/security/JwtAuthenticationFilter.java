@@ -4,16 +4,24 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.school.component.jwt.JwtTokenGenerator;
 import com.school.exception.InvalidTokenException;
+import com.school.model.Role;
+import com.school.model.Roletoauthorities;
+import com.school.service.impl.RoleServiceImpl;
+import com.school.service.impl.RoleToAuthoritiesServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,19 +30,23 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Objects;
+import java.util.*;
 
+@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String AUTHENTICATION_PREFIX = "Bearer ";
     private AuthenticationEntryPoint authenticationEntryPoint = new SimpleAuthenticationEntryPoint();
+
+    @Autowired
+    @Lazy
     private JwtTokenGenerator jwtTokenGenerator;
 
-    public JwtAuthenticationFilter(JwtTokenGenerator jwtTokenGenerator) {
-        this.jwtTokenGenerator = jwtTokenGenerator;
-    }
+    @Autowired
+    private RoleServiceImpl roleService;
+
+    @Autowired
+    private RoleToAuthoritiesServiceImpl roleToAuthoritiesService;
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -74,9 +86,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Iterator<Object> iterator = authoritiesJSONArray.iterator();
 
             while (iterator.hasNext()) {
-                String next = (String) iterator.next();
+                //获取token中的其中一个角色
+                String next = (String) iterator.next();//这里是角色，因为我只放了角色进去
+                //通过该名字找到其id
+                Role role = roleService.findByName(next);
+                List<Roletoauthorities> byRoleId = roleToAuthoritiesService.findByRoleId(role.getId());
+                for (Roletoauthorities roletoauthorities : byRoleId) {
+                    roles_.add(new SimpleGrantedAuthority(roletoauthorities.getAuthority()));
+                }
                 roles_.add((GrantedAuthority) () -> "ROLE_" + next);
             }
+
             String username = jsonObject.getString("audience");
             User user = new User(username, "[PASSWORD]", roles_);
             UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(user, null, roles_);

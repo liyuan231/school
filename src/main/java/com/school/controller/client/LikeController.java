@@ -3,11 +3,9 @@ package com.school.controller.client;
 import com.school.component.security.UserServiceImpl;
 import com.school.exception.*;
 import com.school.model.Likes;
-import com.school.model.Pics;
 import com.school.model.User;
 import com.school.service.impl.LikeServiceImpl;
 import com.school.service.impl.PicsServiceImpl;
-import com.school.utils.FileEnum;
 import com.school.utils.ResponseUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -38,7 +36,7 @@ public class LikeController {
      * @param likedUserId
      * @return
      */
-    @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER') and hasAnyAuthority('/like')")
     @PostMapping("/like/{likedUserId}")
     @ApiOperation(value = "表明意向（需登录）", notes = "用户表明意向,添加一则意向记录")
     public String like(@ApiParam(example = "1", value = "被表明意向的用户的id") @PathVariable("likedUserId") Integer likedUserId) throws UserNotFoundException, UserNotCorrectException, LikesAlreadyExistException {

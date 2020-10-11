@@ -25,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Api(tags = {"客户端用户"}, value = "客户端")
 @RestController
@@ -58,7 +59,7 @@ public class UserController {
         AssertUtil.emailVerificationCodeNotNull(code, "验证码不应为空！");
         Assert.notNull(newPassword, "新密码不应为空！");
         emailService.resetPassword(username, code, newPassword);
-        return ResponseUtil.build(request.getRequestURI(), HttpStatus.OK.value());
+        return ResponseUtil.build(HttpStatus.OK.value(), "重设密码成功！", null);
     }
 
     @PostMapping("/forgetPassword")
@@ -69,7 +70,7 @@ public class UserController {
         AssertUtil.usernameNotNull(username, "邮箱号不应为空！");
         //TODO 这里可以进行校验邮箱是否合法
         AssertUtil.isValidMail(username, "邮箱格式错误!");
-        emailService.sendVerificationCode(username);
+        emailService.sendVerificationCode("签约系统验证码", "签约系统验证码（3分钟内有效）", username, 180, TimeUnit.SECONDS);//忘记密码
         return ResponseUtil.build(HttpStatus.OK.value(), "获取邮箱验证码成功！", null);
     }
 
@@ -93,17 +94,66 @@ public class UserController {
         picsService.add(user, file, fileEnum);
     }
 
+    @PostMapping("/uploadLogoAndSignature")
+    @ApiOperation(value = "上传学校logo以及校长签章", nickname = "用户上传学校logo以及校长签章")
     @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
-    @ApiOperation(value = "获取用户信息", notes = "获取用户信息")
+    public Object uploadLogoAndSignature(@RequestParam("files") List<MultipartFile> files) throws IOException, UserNotFoundException, FileFormattingException {
+        if (files.size() != 0) {
+            for (MultipartFile file : files) {
+                String fileName = file.getOriginalFilename();
+                String format = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+                AssertUtil.isPicture(format);
+                User user = userService.retrieveUserByToken();
+                //TODO
+                List<Pics> picsToLogoAndSignature = picsService.findByUserId(user.getId(), FileEnum.LOGO);
+                if (picsToLogoAndSignature.size() != 0) {
+                    for (Pics pics : picsToLogoAndSignature) {
+                        picsService.delete(pics);
+                    }
+                }
+                //TODO
+                upload(file, format, FileEnum.LOGO);
+            }
+
+            return ResponseUtil.build(HttpStatus.OK.value(), "上传图片成功！", null);
+        }
+        return ResponseUtil.build(HttpStatus.OK.value(), "上传文件为空！", null);
+
+    }
+
+
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
+    @ApiOperation(value = "获取当前用户信息", notes = "获取用户信息")
     @GetMapping("/retrieveUserInfo")
     public Object retrieveUserInfo() {
         User userInDb = userService.retrieveUserByToken();
         userInDb.setPassword("[PASSWORD]");
-        userInDb.setAvatarurl(springFilePath+userInDb.getAvatarurl());
-        List<Pics> avatarUrls = picsService.findByUserId(userInDb.getId(), FileEnum.AVATAR_URL);
+        userInDb.setAvatarurl(springFilePath + userInDb.getAvatarurl());
+//        List<Pics> avatarUrls = picsService.findByUserId(userInDb.getId(), FileEnum.AVATAR_URL);
         return ResponseUtil.build(HttpStatus.OK.value(), "获取用户信息成功!", userInDb);
     }
 
+    @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
+    @ApiOperation(value = "④　参会学校展示", notes = "，获取所有的用户信息，")
+    @GetMapping("/retrieveAllUserInfo")
+    public Object retrieveAllUserInfo() {
+        List<User> users = userService.queryAll();
+        clearPassword(users);
+        updateAvatarUrl(users);
+        return ResponseUtil.build(HttpStatus.OK.value(), "获取用户信息成功!", users);
+    }
+
+    private void updateAvatarUrl(List<User> users) {
+        for (User user : users) {
+            user.setAvatarurl(springFilePath + user.getAvatarurl());
+        }
+    }
+
+    private void clearPassword(List<User> users) {
+        for (User user : users) {
+            user.setPassword("[PASSWORD]");
+        }
+    }
 
 
 }

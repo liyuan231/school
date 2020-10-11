@@ -50,15 +50,61 @@ public class PicsServiceImpl {
         return pics;
     }
 
+
     public void add(User user, MultipartFile file, FileEnum fileEnum) throws IOException, UserNotFoundException {
         String fileName = file.getOriginalFilename();
-        String format = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-        UUID uuid = UUID.randomUUID();
-        String location = uuid + "." + format;
+        String location = getRandomFileName(fileName);
 //        insert(user.getId(), location, fileEnum.value());
-        user.setAvatarurl(location);
-        userService.update(user);
+        if (fileEnum.equals(FileEnum.AVATAR_URL)) {
+            user.setAvatarurl(location);
+            userService.update(user);
+        } else {
+            insert(user.getId(), fileName, fileEnum.value());
+        }
+        transferTo(file, location);
+    }
+
+    private void transferTo(MultipartFile file, String location) throws IOException {
         File fileInServer = new File(filePath + location);
         file.transferTo(fileInServer);
+    }
+
+    private String getRandomFileName(String fileName) {
+        String format = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+        UUID uuid = UUID.randomUUID();
+        return uuid + "." + format;
+    }
+
+    public void deleteById(Integer id) {
+        Pics pics = picsMapper.selectByPrimaryKey(id);
+        delete(pics);
+    }
+
+    public void delete(Pics pics) {
+        pics.setDeleted(true);
+        pics.setUpdateTime(LocalDateTime.now());
+        picsMapper.updateByPrimaryKeySelective(pics);
+    }
+
+    public Pics upload(Integer userId, FileEnum fileEnum, MultipartFile file) throws IOException {
+        List<Pics> logos = findByUserId(userId, fileEnum);
+        Pics pics = new Pics();
+        String randomFileName = getRandomFileName(file.getOriginalFilename());
+        pics.setLocation(randomFileName);
+        pics.setUpdateTime(LocalDateTime.now());
+        pics.setType(fileEnum.value());
+        pics.setUserid(userId);
+        transferTo(file, pics.getLocation());
+        if (logos.size() != 0) {
+            PicsExample picsExample = new PicsExample();
+            PicsExample.Criteria criteria = picsExample.createCriteria();
+            criteria.andUseridEqualTo(userId);
+            criteria.andTypeEqualTo(fileEnum.value());
+            picsMapper.updateByExampleSelective(pics, picsExample);
+        } else {
+            pics.setAddTime(LocalDateTime.now());
+            picsMapper.insertSelective(pics);
+        }
+        return pics;
     }
 }

@@ -1,7 +1,7 @@
 package com.school.configuration;
 
-import com.school.component.jwt.JwtTokenGenerator;
 import com.school.component.security.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,7 +11,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -20,7 +19,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import javax.annotation.Resource;
 import java.util.Arrays;
 
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -29,27 +27,22 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableGlobalMethodSecurity(prePostEnabled = true, jsr250Enabled = true, securedEnabled = true)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
-//    private static final String LOGIN_PROCESSING_URL = "/login";
+    private static final String LOGIN_PROCESSING_URL = "/api/login";
 
     @Bean
     @Primary
     public PasswordEncoder bCryptPasswordEncoder() {
-        return new BCryptPasswordEncoder();//前端加密和后端无关
+        return new BCryptPasswordEncoder();
     }
 
-//    @Bean
-//    public PasswordEncoder md5PasswordEncoder() {
-//        return new MessageDigestPasswordEncoder("MD5");
-//    }
-
-    @Resource
-    JwtTokenGenerator jwtTokenGenerator;
-
-    @Resource
+    @Autowired
     AuthenticationFailureHandler jsonLoginFailureHandler;
 
-    @Resource
+    @Autowired
     AuthenticationSuccessHandler jsonLoginSuccessHandler;
+
+    @Autowired
+    JwtAuthenticationFilter jwtAuthenticationFilter;
 
 
     @Override
@@ -80,7 +73,7 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .and().logout().logoutSuccessHandler(new SimpleLogoutSuccessHandler());
 
 //        http.addFilterBefore(new JsonUsernamePasswordAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
-        http.addFilterBefore(new JwtAuthenticationFilter(jwtTokenGenerator), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         //替换掉该UsernamePasswordAuthenticationFilter
         http.addFilterAt(jsonUsernamePasswordAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
     }
@@ -100,6 +93,7 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
         jsonUsernamePasswordAuthenticationFilter.setAuthenticationSuccessHandler(jsonLoginSuccessHandler);
         jsonUsernamePasswordAuthenticationFilter.setAuthenticationFailureHandler(jsonLoginFailureHandler);
         jsonUsernamePasswordAuthenticationFilter.setAuthenticationManager(authenticationManagerBean());
+        jsonUsernamePasswordAuthenticationFilter.setFilterProcessesUrl(LOGIN_PROCESSING_URL);
         //登录默认为 POST ->"/login" 也可在此处重写
         return jsonUsernamePasswordAuthenticationFilter;
     }

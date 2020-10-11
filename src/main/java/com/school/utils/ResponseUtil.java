@@ -16,7 +16,7 @@ public class ResponseUtil {
                                Object data) {
         Map<String, Object> map = new HashMap<>();
         map.put("timestamp", System.currentTimeMillis());
-        map.put("uri", uri);
+//        map.put("uri", uri);
         map.put("code", httpStatus);
         map.put("message", message);
         map.put("data", data);

@@ -27,8 +27,8 @@ import java.util.concurrent.TimeUnit;
 @Transactional
 public class EmailServiceImpl {
     private Logger logger = LoggerFactory.getLogger(getClass());
+    //用户忘记密码使得授权码
     private ExpiringMap<String, String> usernameToCodeMap = ExpiringMap.builder().variableExpiration().build();
-
     @Autowired
     private JavaMailSenderImpl javaMailSenderImpl;
 
@@ -57,19 +57,23 @@ public class EmailServiceImpl {
 //    public void setSystemEmail(String systemEmail) {
 //        this.systemEmail = systemEmail;
 //    }
-    public void sendVerificationCode(String username) throws EmailNotFoundException {
+    public void sendVerificationCode(String subject, String message, String username, Integer duration, TimeUnit timeUnit) throws EmailNotFoundException {
         //生成随机的验证码
+        String code = generateCode();
+        usernameToCodeMap.put(username, code, duration, timeUnit);
+        StringBuilder context = new StringBuilder();
+        context.append(message).append(code);
+
+        send(username, subject, context.toString());
+    }
+
+    private String generateCode() {
         StringBuilder code = new StringBuilder();
         for (int i = 0; i < 4; i++) {
             code.append((int) (Math.random() * 10));
         }
-        usernameToCodeMap.put(username, code.toString(), 180, TimeUnit.SECONDS);
-        StringBuilder context = new StringBuilder();
-        context.append("XXX验证码: " + code).append("\n").append("三分钟内有效");
-
-        send(username, "XXX验证码", context.toString());
+        return code.toString();
     }
-
 
     public void resetPassword(String username,
                               String code,
@@ -77,7 +81,7 @@ public class EmailServiceImpl {
         String codeInCache = usernameToCodeMap.get(username);
         AssertUtil.emailVerificationCodeNotNull(codeInCache, "验证码不存在！");
         AssertUtil.emailVerificationCodeEquals(code.trim().equals(codeInCache), "验证码错误！");
-
+        usernameToCodeMap.remove(username);
         //TODO 在这里修改数据库中密码
         User user = new User();
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -122,7 +126,6 @@ public class EmailServiceImpl {
         send(user.getUsername(), "XXX临时默认密码", user.getPassword());
     }
 
-
     public void send(String to, String subject, String context) throws EmailNotFoundException {
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
         simpleMailMessage.setFrom(mailProperties.getUsername());//系统邮箱
@@ -131,4 +134,6 @@ public class EmailServiceImpl {
         simpleMailMessage.setTo(to);
         javaMailSenderImpl.send(simpleMailMessage);
     }
+
+
 }
