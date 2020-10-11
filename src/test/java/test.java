@@ -3,8 +3,10 @@ import com.school.component.security.UserServiceImpl;
 import com.school.exception.EmailNotFoundException;
 import com.school.exception.ExcelDataException;
 import com.school.exception.UsernameAlreadyExistException;
+import com.school.model.Likes;
 import com.school.model.User;
 import com.school.service.impl.EmailServiceImpl;
+import com.school.service.impl.LikeServiceImpl;
 import com.school.utils.FileUtil;
 import com.school.utils.IpUtil;
 import com.school.utils.RoleEnum;
@@ -132,6 +134,24 @@ public class test {
             user.setTelephone("学校电话" + i);
             user.setPassword("123");
             userService.add(user, RoleEnum.USER.value());
+        }
+    }
+
+    @Autowired
+    LikeServiceImpl likeService;
+
+    @Test
+    public void insertLikes() {
+        for (int i = 0; i < 67; i++) {
+            Likes likes = new Likes();
+            Integer id1 = (int) (Math.random() * (323 - 245)) + 245;
+            likes.setLikeuserid(id1);
+            Integer id2 = (int) (Math.random() * (323 - 245)) + 245;
+            while (id1.equals(id2)) {
+                id2 = (int) (Math.random() * (323 - 245)) + 245;
+            }
+            likes.setLikeduserid(id2);
+            likeService.add(likes);
         }
 
     }

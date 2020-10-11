@@ -30,14 +30,4 @@ public class AdminExcelController {
     @Autowired
     private UserServiceImpl userService;
 
-
-
-    @GetMapping("/retrieveAllUsers")
-    @ApiOperation(value = "导出用户信息（未实现excel）", notes = "此处应该生成excel并返回该文件，然而对此块有些不熟，就先直接返回所有的用户的json数据，和 api/admin/user/all 作用一样")
-    public String retrieveAllUsers() throws IOException {
-//        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-//        response.setCharacterEncoding("utf-8");
-        List<User> users = userService.queryAll();
-        return ResponseUtil.build(HttpStatus.OK.value(), "获取所有高校用户信息成功！", users);
-    }
 }

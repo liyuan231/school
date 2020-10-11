@@ -17,20 +17,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.FileCopyUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.*;
+import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.LinkedList;
 import java.util.List;
 
-@Api(tags = {"管理端用户"}, value = "管理端管理用户")
+/**
+ * 至此，管理端用户部分应是写完了
+ */
+@Api(tags = {"高校信息管理，管理端用户"}, value = "管理端管理用户")
 @RestController
 @RequestMapping("/api/admin/user")
 public class AdminUserController {
@@ -104,14 +106,15 @@ public class AdminUserController {
 //    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
     @ApiOperation(value = "导入单个高校信息", notes = "后台手动添加一个用户")
     public Object create(@ApiParam(example = "123@qq.com", value = "用户名即为邮箱号") @RequestParam("username") String username,
-                         @ApiParam(example = "123456", value = "前端加过密的密码") @RequestParam("password") String password,
-                         @ApiParam(example = "GDUFS", value = "学校名") @RequestParam("schoolName") String schoolName,
-                         @ApiParam(example = "人名", value = "联系人") @RequestParam("contact") String contact,
-                         @ApiParam(example = "地址", value = "学校详细地址") @RequestParam("address") String address,
-                         @ApiParam(example = "111", value = "电话号码") @RequestParam("telephone") String telephone,
-                         @ApiParam(example = "111", value = "学校代码") @RequestParam("schoolCode") String schoolCode,
-                         @ApiParam(example = "11@qq.com", value = "学校邮箱") @RequestParam("email") String email) throws UsernameAlreadyExistException {
-        userService.add(username, password, schoolName, contact, address, telephone, schoolCode, email);
+                         @ApiParam(example = "123456", value = "前端加过密的密码") @RequestParam(value = "password", required = false) String password,
+                         @ApiParam(example = "GDUFS", value = "学校名") @RequestParam(value = "schoolName", required = false) String schoolName,
+                         @ApiParam(example = "人名", value = "联系人") @RequestParam(value = "contact", required = false) String contact,
+                         @ApiParam(example = "地址", value = "学校详细地址") @RequestParam(value = "address", required = false) String address,
+                         @ApiParam(example = "111", value = "电话号码") @RequestParam(value = "telephone", required = false) String telephone,
+                         @ApiParam(example = "111", value = "学校代码") @RequestParam(value = "schoolCode", required = false) String schoolCode,
+                         @ApiParam(example = "11@qq.com", value = "学校邮箱") @RequestParam(value = "email", required = false) String email,
+                         @ApiParam(example = "教授",value = "职务")@RequestParam(value = "profession",required = false)String profession) throws UsernameAlreadyExistException {
+        userService.add(username, password, schoolName, contact, address, telephone, schoolCode, email,profession);
         return ResponseUtil.build(HttpStatus.OK.value(), "添加一个用户成功!", null);
     }
 
@@ -180,21 +183,37 @@ public class AdminUserController {
         return ResponseUtil.build(request.getRequestURI(), HttpStatus.BAD_REQUEST.value(), "录入excel数据成功！");
     }
 
-    @ApiOperation(value = "导出报名表", notes = "导出报名表")
-    @PostMapping("/exportRegistrationForm")
-    public ResponseEntity<byte[]> exportRegistrationForm() throws IOException {
+    @ApiOperation(value = "导出报名表", notes = "导出报名表(swagger-bootstarp无法下载，会直接显示内容，因此要测试可以直接浏览器访问该地址)")
+    @GetMapping("/exportRegistrationForm")
+    public void exportRegistrationForm(HttpServletResponse response) throws IOException {
         Workbook workbook = userService.exportRegistrationForm();
         String fileName = User.class.getSimpleName() + ".xls";
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentDispositionFormData("attachment", fileName);
-        httpHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        String fileLocation = "./" + fileName;
-        try (DataOutputStream dataOutputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(fileLocation)))) {
-            workbook.write(dataOutputStream);
-        }
-        File file = new File(fileLocation);
-        return new ResponseEntity<>(FileCopyUtils.copyToByteArray(file), HttpStatus.OK);
-
+        response.addHeader("Content-Disposition", "attachment;filename=" + fileName);
+        response.setContentType("application/vnd.ms-excel;charset=utf-8");
+        OutputStream outputStream = new BufferedOutputStream(response.getOutputStream());
+        workbook.write(outputStream);
+        outputStream.close();
+        workbook.close();
     }
+
+
+    @GetMapping("/user/search")
+    @ApiOperation(value = "搜索", notes = "输入搞高校名进行搜索")
+    public String search(@RequestParam(required = false) String schoolName,
+                         @ApiParam(example = "1", value = "分页使用，要第几页的数据") @RequestParam(value = "page", required = false) Integer page,
+                         @ApiParam(example = "10", value = "分页使用，要该页的几条数据") @RequestParam(value = "pageSize", required = false) Integer limit,
+                         @ApiParam(example = "1", value = "排序方式，从数据库中要的数据使用什么进行排序，如 add_time,update_time") @RequestParam(defaultValue = "add_time") String sort,
+                         @ApiParam(example = "desc", value = "排序方式，升序asc还是降序desc") @RequestParam(defaultValue = "desc") String order) {
+        List<User> users = userService.querySelective(schoolName, page, limit, sort, order);
+        userService.clearPassword(users);
+        List<SimpleUserInfo> userInfos = new LinkedList<>();
+        for (User user : users) {
+            SimpleUserInfo simpleUserInfo = new SimpleUserInfo();
+            complete(user, simpleUserInfo);
+            userInfos.add(simpleUserInfo);
+        }
+        return ResponseUtil.build(HttpStatus.OK.value(), "搜索成功！", userInfos);
+    }
+
 
 }

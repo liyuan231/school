@@ -1,29 +1,12 @@
 package com.school.dto;
 
-public class SimpleUserInfo {
-    private Integer id;
-    private String schoolName;
+public class SimpleUserInfo extends TrivialUserInfo{
     private String contact;
     private String address;
     private String email;
     private String telephone;
     private String username;
 
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getSchoolName() {
-        return schoolName;
-    }
-
-    public void setSchoolName(String schoolName) {
-        this.schoolName = schoolName;
-    }
 
     public String getContact() {
         return contact;

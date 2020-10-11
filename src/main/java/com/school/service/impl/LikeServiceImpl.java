@@ -1,13 +1,16 @@
 package com.school.service.impl;
 
 import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.school.component.security.UserServiceImpl;
 import com.school.dao.LikesMapper;
+import com.school.dto.SimpleLikesInfo;
 import com.school.exception.*;
 import com.school.model.Likes;
 import com.school.model.LikesExample;
 import com.school.model.User;
-import com.school.utils.RoleEnum;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,10 +18,7 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @Transactional
@@ -35,11 +35,12 @@ public class LikeServiceImpl {
                                       Integer likeUserId,
                                       Integer likedUserId,
                                       Integer page,
-                                      Integer limit,
+                                      Integer pageSize,
                                       String sort,
                                       String order) {
         LikesExample likeExample = new LikesExample();
         LikesExample.Criteria criteria = likeExample.createCriteria();
+//        criteria.setP
         if (!StringUtils.isEmpty(id)) {
             criteria.andIdEqualTo(id);
         }
@@ -47,14 +48,24 @@ public class LikeServiceImpl {
             criteria.andLikeduseridEqualTo(likedUserId);
         }
         if (!StringUtils.isEmpty(likeUserId)) {
-            criteria.andLikeduseridEqualTo(likeUserId);
+            criteria.andLikeuseridEqualTo(likeUserId);
         }
-        criteria.andDeletedEqualTo(false);
         if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {
             likeExample.setOrderByClause(sort + " " + order);
         }
-        PageHelper.startPage(page, limit);
-        return likesMapper.selectByExampleSelective(likeExample);
+        if (page != null || pageSize != null) {
+            if (page == null) {
+                PageHelper.startPage(1, pageSize);
+            } else if (pageSize == null) {
+                PageHelper.startPage(page, 10);
+            } else {
+                PageHelper.startPage(page, pageSize);
+            }
+        }
+        criteria.andDeletedEqualTo(false);
+        List<Likes> likes = likesMapper.selectByExampleSelective(likeExample);
+        PageInfo<Likes> pageInfo = new PageInfo<>(likes);
+        return pageInfo.getList();
     }
 
     public void add(Likes like) {
@@ -72,12 +83,12 @@ public class LikeServiceImpl {
         if (byId == null) {
             throw new LikesNotFoundException("该则意向不存在，请检查id");
         }
-        User user = userService.retrieveUserByToken();
-        Integer roleId = userToRoleService.retrieveUserToRoleByUser(user);
-        Integer likeuserid = byId.getLikeuserid();
-        if (roleId != RoleEnum.ADMINISTRATOR.value() && likeuserid != null && !user.getId().equals(likeuserid)) {
-            throw new UserLikesNotCorrespondException("当前用户与该则意向id不一致！");
-        }
+//        User user = userService.retrieveUserByToken();
+//        Integer roleId = userToRoleService.retrieveUserToRoleByUser(user);
+//        Integer likeuserid = byId.getLikeuserid();
+//        if (roleId != RoleEnum.ADMINISTRATOR.value() && likeuserid != null && !user.getId().equals(likeuserid)) {
+//            throw new UserLikesNotCorrespondException("当前用户与该则意向id不一致！");
+//        }
         like.setUpdateTime(LocalDateTime.now());
         return likesMapper.updateByPrimaryKeySelective(like);
     }
@@ -111,13 +122,12 @@ public class LikeServiceImpl {
 
     public void like(Integer likeUserId, Integer likedUserId) throws UserNotFoundException, UserNotCorrectException, LikesAlreadyExistException {
         User byId = userService.findById(likedUserId);
+        if (byId == null) {
+            throw new UserNotFoundException("用户不存在！");
+        }
         List<Likes> likes1 = find(likeUserId, likedUserId);
         if (likes1.size() >= 1) {
             throw new LikesAlreadyExistException("已经和该用户表明过意向了!");
-        }
-
-        if (byId == null) {
-            throw new UserNotFoundException("用户不存在！");
         }
         if (likeUserId.equals(likedUserId)) {
             throw new UserNotCorrectException("不能自己对自己有意向！");
@@ -197,5 +207,87 @@ public class LikeServiceImpl {
         LikesExample.Criteria criteria = likesExample.createCriteria();
         criteria.andDeletedEqualTo(false);
         return likesMapper.selectByExample(likesExample);
+    }
+
+    public List<Likes> querySelective(Integer page, Integer pageSize, String sort, String order) {
+        return querySelective(null, null, null, page, pageSize, sort, order);
+    }
+
+    public Workbook exportLikesForm() {
+        List<Likes> likes = querySelective(null, null, null, null, null, null, null);
+        List<List<Likes>> lists = deduplicationLikes(likes);
+        //此处每一个List代表一个用户及其所有的意向学校
+        List<SimpleLikesInfo> likesInfos = new LinkedList<>();
+        for (List<Likes> like : lists) {
+            SimpleLikesInfo simpleLikesInfo = new SimpleLikesInfo();
+            //该用户下所有意向的学校
+            List<String> schoolNames = new LinkedList<>();
+            for (Likes eachLike : like) {
+                Integer likeuserid = eachLike.getLikeuserid();
+                if (simpleLikesInfo.getSchoolId() == null) {
+                    simpleLikesInfo.setSchoolId(likeuserid);
+                }
+                if (simpleLikesInfo.getSchoolName() == null) {
+                    User user = userService.findById(likeuserid);
+                    simpleLikesInfo.setSchoolName(user.getSchoolname());
+                }
+                User user = userService.findById(eachLike.getLikeduserid());
+                schoolNames.add(user.getSchoolname());
+            }
+            simpleLikesInfo.setLikesSchoolName(schoolNames);
+            likesInfos.add(simpleLikesInfo);
+        }
+        Workbook workbook = new HSSFWorkbook();
+        CellStyle cellStyle = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setFontName("IMPACT");
+        font.setBold(true);
+        cellStyle.setFont(font);
+
+        Sheet sheet = workbook.createSheet();
+        Row row = sheet.createRow(0);
+        row.createCell(0).setCellValue("签约意向表");
+        row = sheet.createRow(1);
+        Cell cell = row.createCell(0);
+        cell.setCellValue("学校名称");
+        cell.setCellStyle(cellStyle);
+        cell = row.createCell(1);
+        cell.setCellValue("签约意向");
+        cell.setCellStyle(cellStyle);
+//        sheet.setColumnWidth(10,100*256);
+//        sheet.setDefaultRowHeight(Short);
+        for (int i = 0; i < likesInfos.size(); i++) {
+            row = sheet.createRow(i + 2);
+            cell = row.createCell(0);
+            cell.setCellValue(likesInfos.get(i).getSchoolName());
+            cell = row.createCell(1);
+            StringBuilder s = new StringBuilder(Arrays.toString(likesInfos.get(i).getLikesSchoolName().toArray()));
+            if (s.length() > 0) {
+                s.deleteCharAt(s.length() - 1);
+                s.deleteCharAt(0);
+            }
+            cell.setCellValue(s.toString());
+        }
+        return workbook;
+    }
+
+//    public List<Likes> querySelective(Integer page, Integer pageSize, String sort, String order, String distinctBy) {
+//        return querySelective(null,null,null,page,pageSize,sort,order,distinctBy);
+//    }
+
+    private List<List<Likes>> deduplicationLikes(List<Likes> likes) {
+        Map<Integer, List<Likes>> map = new HashMap<>();
+        //获取所有用户的意向，且已经去重
+        for (Likes like : likes) {
+            Integer likeuserid = like.getLikeuserid();
+            List<Likes> list = map.get(like.getLikeuserid());
+            if (list == null) {
+                list = new LinkedList<>();
+            }
+            list.add(like);
+            map.put(likeuserid, list);
+        }
+        List<List<Likes>> list = new LinkedList<>(map.values());
+        return list;
     }
 }

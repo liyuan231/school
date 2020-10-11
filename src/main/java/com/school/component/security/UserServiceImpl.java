@@ -141,10 +141,7 @@ public class UserServiceImpl implements UserDetailsService {
     }
 
     public User findById(Integer id) {
-        UserExample userExample = new UserExample();
-        userExample.createCriteria().andIdEqualTo(id);
-        User user = userMapper.selectOneByExampleSelective(userExample);
-        return user;
+        return userMapper.selectByPrimaryKey(id);
     }
 
     public List<User> queryAll() {
@@ -193,13 +190,18 @@ public class UserServiceImpl implements UserDetailsService {
                 PageHelper.startPage(page, limit);
             }
         }
+        criteria.andDeletedEqualTo(false);
         List<User> users = userMapper.selectByExampleSelective(userExample);
         PageInfo<User> pageInfo = new PageInfo<>(users);
         return pageInfo.getList();
     }
 
     public List<User> querySelective(Integer page, Integer limit, String sort, String order) {
-        return querySelective(null, null, null, page, limit, sort, order);
+        return querySelective(null, page, limit, sort, order);
+    }
+
+    public List<User> querySelective(String schoolName, Integer page, Integer limit, String sort, String order) {
+        return querySelective(null, null, schoolName, page, limit, sort, order);
     }
 
     public void add(String username, String password, String schoolName, Integer level) throws UsernameAlreadyExistException {
@@ -277,6 +279,7 @@ public class UserServiceImpl implements UserDetailsService {
         }
     }
 
+
     public void add(String username,
                     String password,
                     String schoolName,
@@ -285,16 +288,7 @@ public class UserServiceImpl implements UserDetailsService {
                     String telephone,
                     String schoolCode,
                     String email) throws UsernameAlreadyExistException {
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setSchoolname(schoolName);
-        user.setContact(contact);
-        user.setAddress(address);
-        user.setTelephone(telephone);
-        user.setSchoolcode(schoolCode);
-        user.setEmail(email);
-        add(user, RoleEnum.USER.value());
+        add(username,password,schoolName,contact,address,telephone,schoolCode,email,null);
     }
 
     public void importRegistrationForm(MultipartFile file) throws FileFormattingException, IOException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ExcelDataException, EmailNotFoundException, UsernameAlreadyExistException {
@@ -384,7 +378,6 @@ public class UserServiceImpl implements UserDetailsService {
         return map;
     }
 
-
     public Workbook exportRegistrationForm() throws IOException {
         List<User> users = querySelective(null, null, null, null);
         Workbook workbook = new HSSFWorkbook();
@@ -426,5 +419,20 @@ public class UserServiceImpl implements UserDetailsService {
         Method method = User.class.getMethod("get" + fieldName);
         User user1 = new User();
         return method.invoke(user);
+    }
+
+
+    public void add(String username, String password, String schoolName, String contact, String address, String telephone, String schoolCode, String email, String profession) throws UsernameAlreadyExistException {
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+        user.setSchoolname(schoolName);
+        user.setContact(contact);
+        user.setAddress(address);
+        user.setTelephone(telephone);
+        user.setSchoolcode(schoolCode);
+        user.setEmail(email);
+        user.setProfession(profession);
+        add(user, RoleEnum.USER.value());
     }
 }

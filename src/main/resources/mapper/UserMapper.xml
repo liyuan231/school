@@ -23,6 +23,7 @@
     <result column="avatarUrl" jdbcType="VARCHAR" property="avatarurl" />
     <result column="accountStatus" jdbcType="INTEGER" property="accountstatus" />
     <result column="email" jdbcType="VARCHAR" property="email" />
+    <result column="profession" jdbcType="VARCHAR" property="profession" />
   </resultMap>
   <sql id="Example_Where_Clause">
     <!--
@@ -97,7 +98,7 @@
     -->
     id, username, `password`, schoolname, contact, address, telephone, update_time, schoolCode, 
     `location`, add_time, lastLoginIp, lastLoginTime, deleted, avatarUrl, accountStatus, 
-    email
+    email, profession
   </sql>
   <select id="selectByExample" parameterType="com.school.model.UserExample" resultMap="BaseResultMap">
     <!--
@@ -223,13 +224,13 @@
       update_time, schoolCode, `location`, 
       add_time, lastLoginIp, lastLoginTime, 
       deleted, avatarUrl, accountStatus, 
-      email)
+      email, profession)
     values (#{username,jdbcType=VARCHAR}, #{password,jdbcType=VARCHAR}, #{schoolname,jdbcType=VARCHAR}, 
       #{contact,jdbcType=VARCHAR}, #{address,jdbcType=VARCHAR}, #{telephone,jdbcType=VARCHAR}, 
       #{updateTime,jdbcType=TIMESTAMP}, #{schoolcode,jdbcType=VARCHAR}, #{location,jdbcType=VARCHAR}, 
       #{addTime,jdbcType=TIMESTAMP}, #{lastloginip,jdbcType=VARCHAR}, #{lastlogintime,jdbcType=TIMESTAMP}, 
       #{deleted,jdbcType=BIT}, #{avatarurl,jdbcType=VARCHAR}, #{accountstatus,jdbcType=INTEGER}, 
-      #{email,jdbcType=VARCHAR})
+      #{email,jdbcType=VARCHAR}, #{profession,jdbcType=VARCHAR})
   </insert>
   <insert id="insertSelective" parameterType="com.school.model.User">
     <!--
@@ -289,6 +290,9 @@
       <if test="email != null">
         email,
       </if>
+      <if test="profession != null">
+        profession,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       <if test="username != null">
@@ -338,6 +342,9 @@
       </if>
       <if test="email != null">
         #{email,jdbcType=VARCHAR},
+      </if>
+      <if test="profession != null">
+        #{profession,jdbcType=VARCHAR},
       </if>
     </trim>
   </insert>
@@ -409,6 +416,9 @@
       <if test="record.email != null">
         email = #{record.email,jdbcType=VARCHAR},
       </if>
+      <if test="record.profession != null">
+        profession = #{record.profession,jdbcType=VARCHAR},
+      </if>
     </set>
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
@@ -436,7 +446,8 @@
       deleted = #{record.deleted,jdbcType=BIT},
       avatarUrl = #{record.avatarurl,jdbcType=VARCHAR},
       accountStatus = #{record.accountstatus,jdbcType=INTEGER},
-      email = #{record.email,jdbcType=VARCHAR}
+      email = #{record.email,jdbcType=VARCHAR},
+      profession = #{record.profession,jdbcType=VARCHAR}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>
@@ -496,6 +507,9 @@
       <if test="email != null">
         email = #{email,jdbcType=VARCHAR},
       </if>
+      <if test="profession != null">
+        profession = #{profession,jdbcType=VARCHAR},
+      </if>
     </set>
     where id = #{id,jdbcType=INTEGER}
   </update>
@@ -520,7 +534,8 @@
       deleted = #{deleted,jdbcType=BIT},
       avatarUrl = #{avatarurl,jdbcType=VARCHAR},
       accountStatus = #{accountstatus,jdbcType=INTEGER},
-      email = #{email,jdbcType=VARCHAR}
+      email = #{email,jdbcType=VARCHAR},
+      profession = #{profession,jdbcType=VARCHAR}
     where id = #{id,jdbcType=INTEGER}
   </update>
   <select id="selectOneByExample" parameterType="com.school.model.UserExample" resultMap="BaseResultMap">

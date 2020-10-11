@@ -4,6 +4,7 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.school.component.security.UserServiceImpl;
 import com.school.dao.SignMapper;
+import com.school.dto.SimpleSignInfo;
 import com.school.exception.*;
 import com.school.model.Sign;
 import com.school.model.SignExample;
@@ -16,6 +17,7 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.LinkedList;
 import java.util.List;
 
 @Service
@@ -77,7 +79,7 @@ public class SignServiceImpl {
         if (!StringUtils.isEmpty(signUserId)) {
             criteria.andSignuseridEqualTo(signUserId);
         }
-        criteria.andDeletedEqualTo(false);
+
         if (!StringUtils.isEmpty(sort) && !StringUtils.isEmpty(order)) {
             signExample.setOrderByClause(sort + " " + order);
         }
@@ -90,6 +92,7 @@ public class SignServiceImpl {
                 PageHelper.startPage(page, limit);
             }
         }
+        criteria.andDeletedEqualTo(false);
         List<Sign> signs = signMapper.selectByExampleSelective(signExample);
         PageInfo<Sign> signPageInfo = new PageInfo<>(signs);
         return signPageInfo.getList();
@@ -114,17 +117,17 @@ public class SignServiceImpl {
         }
         Integer signUserId = sign.getSignuserid();
         Integer signedUserId = sign.getSigneduserid();
-        com.school.model.User user = userService.retrieveUserByToken();
-        Integer roleId = userToRoleService.retrieveUserToRoleByUser(user);
-        if (roleId != RoleEnum.ADMINISTRATOR.value() && signUserId != null && !signUserId.equals(user.getId())) {
-            throw new UserSignCorrespondException("签约用户与当前sign不一致！");
-        }
-        if (roleId != RoleEnum.ADMINISTRATOR.value() && signedUserId != null) {
-            User byId1 = userService.findById(signedUserId);
-            if (byId1 == null) {
-                throw new UserNotFoundException("被签约用户不存在！");
-            }
-        }
+//        com.school.model.User user = userService.retrieveUserByToken();
+////        Integer roleId = userToRoleService.retrieveUserToRoleByUser(user);
+//        if (roleId != RoleEnum.ADMINISTRATOR.value() && signUserId != null && !signUserId.equals(user.getId())) {
+//            throw new UserSignCorrespondException("签约用户与当前sign不一致！");
+//        }
+//        if (roleId != RoleEnum.ADMINISTRATOR.value() && signedUserId != null) {
+//            User byId1 = userService.findById(signedUserId);
+//            if (byId1 == null) {
+//                throw new UserNotFoundException("被签约用户不存在！");
+//            }
+//        }
         sign.setUpdateTime(LocalDateTime.now());
         return signMapper.updateByPrimaryKeySelective(sign);
     }
@@ -179,6 +182,20 @@ public class SignServiceImpl {
         SignExample.Criteria criteria = signExample.createCriteria();
         criteria.andDeletedEqualTo(false);
         return signMapper.selectByExampleSelective(signExample);
+
+    }
+
+    public List<Sign> querySelective(Integer page, Integer limit, String sort, String order) {
+        return querySelective(null, null, null, page, limit, sort, order);
+    }
+
+    public List<Sign> querySelective(String schoolName, Integer page, Integer pageSize, String sort, String order) {
+        List<Sign> signs = querySelective(page, pageSize, sort, order);
+        List<SimpleSignInfo> simpleSignInfos = new LinkedList<>();
+        for (Sign sign : signs) {
+
+        }
+        return signs;
 
     }
 }
