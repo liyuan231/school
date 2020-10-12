@@ -4,9 +4,11 @@ import com.school.exception.EmailNotFoundException;
 import com.school.exception.ExcelDataException;
 import com.school.exception.UsernameAlreadyExistException;
 import com.school.model.Likes;
+import com.school.model.Sign;
 import com.school.model.User;
 import com.school.service.impl.EmailServiceImpl;
 import com.school.service.impl.LikeServiceImpl;
+import com.school.service.impl.SignServiceImpl;
 import com.school.utils.FileUtil;
 import com.school.utils.IpUtil;
 import com.school.utils.RoleEnum;
@@ -130,7 +132,7 @@ public class test {
             user.setSchoolname("学校" + i);
             user.setAddress("学校详细地址" + i);
             user.setContact("联系人" + i);
-            user.setEmail("学校邮箱" + i);
+//            user.setEmail("学校邮箱" + i);
             user.setTelephone("学校电话" + i);
             user.setPassword("123");
             userService.add(user, RoleEnum.USER.value());
@@ -154,5 +156,23 @@ public class test {
             likeService.add(likes);
         }
 
+    }
+
+    @Autowired
+    private SignServiceImpl signService;
+
+    @Test
+    public void test4() {
+        for (int i = 0; i < 88; i++) {
+            Sign sign = new Sign();
+            Integer id1 = (int) (Math.random() * (323 - 245)) + 245;
+            sign.setSignuserid(id1);
+            Integer id2 = (int) (Math.random() * (323 - 245)) + 245;
+            while (id1.equals(id2)) {
+                id2 = (int) (Math.random() * (323 - 245)) + 245;
+            }
+            sign.setSigneduserid(id2);
+            signService.add(sign);
+        }
     }
 }

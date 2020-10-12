@@ -1,13 +1,11 @@
 package com.school.controller.admin;
 
 import com.school.component.security.UserServiceImpl;
-import com.school.dto.NormalLikesInfo;
-import com.school.dto.NormalLikesInfoList;
-import com.school.dto.SimpleLikesInfo;
-import com.school.dto.TrivialUserInfo;
+import com.school.dto.*;
 import com.school.exception.*;
 import com.school.model.Likes;
 import com.school.model.User;
+import com.school.service.impl.EmailServiceImpl;
 import com.school.service.impl.LikeServiceImpl;
 import com.school.utils.ResponseUtil;
 import io.swagger.annotations.Api;
@@ -15,6 +13,8 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,19 +24,19 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController("adminLikeController")
 @RequestMapping("/api/admin/like")
 @Api(value = "签约意向管理", tags = "管理端意向")
 public class AdminLikeController {
+    private Logger logger = LoggerFactory.getLogger(getClass());
     @Autowired
     private LikeServiceImpl likeService;
     @Autowired
     private UserServiceImpl userService;
+    @Autowired
+    private EmailServiceImpl emailService;
 
     /**
      * 传入当前用户喜欢的一方的userId
@@ -67,24 +67,24 @@ public class AdminLikeController {
      */
     Map<Integer, String> idToSchoolNameCache = new HashMap<>();
 
-    @GetMapping("/list")
-    @ApiOperation(value = "签约意向管理->页面数据显示", notes = "主要用于管理端分页显示")
-    public Object list(@ApiParam(example = "1", value = "分页使用，要第几页的数据") @RequestParam(required = false) Integer page,
-                       @ApiParam(example = "10", value = "分页使用，要该页的几条数据") @RequestParam(required = false) Integer pageSize,
-                       @ApiParam(example = "1", value = "排序方式，从数据库中要的数据使用什么进行排序，如 add_time,update_time") @RequestParam(defaultValue = "add_time", required = false) String sort,
-                       @ApiParam(example = "desc", value = "排序方式，升序asc还是降序desc") @RequestParam(defaultValue = "desc", required = false) String order) {
-        List<Likes> likes = likeService.querySelective(null, null, sort, order);
-        //由于mybatis无法实现去重，因此需要曲线救国，此处获取全部意向
-        List<SimpleLikesInfo> results = getSimpleLikesInfos(page, pageSize, likes);
-        return ResponseUtil.build(HttpStatus.OK.value(), "获取意向列表成功！", results);
-    }
+//    @GetMapping("/list")
+//    @ApiOperation(value = "签约意向管理->页面数据显示", notes = "主要用于管理端分页显示")
+//    public Object list(@ApiParam(example = "1", value = "分页使用，要第几页的数据") @RequestParam(required = false) Integer page,
+//                       @ApiParam(example = "10", value = "分页使用，要该页的几条数据") @RequestParam(required = false) Integer pageSize,
+//                       @ApiParam(example = "1", value = "排序方式，从数据库中要的数据使用什么进行排序，如 add_time,update_time") @RequestParam(defaultValue = "add_time", required = false) String sort,
+//                       @ApiParam(example = "desc", value = "排序方式，升序asc还是降序desc") @RequestParam(defaultValue = "desc", required = false) String order) {
+//        List<Likes> likes = likeService.querySelective(null, null, sort, order);
+//        //由于mybatis无法实现去重，因此需要曲线救国，此处获取全部意向
+//        SimplePage results = getSimpleLikesInfos(page, pageSize, likes);
+//        return ResponseUtil.build(HttpStatus.OK.value(), "获取意向列表成功！", results);
+//    }
 
-    public List<SimpleLikesInfo> getSimpleLikesInfos(Integer page, Integer pageSize, List<Likes> likes) {
+    public SimplePage<Object> getSimpleLikesInfos(Integer page, Integer pageSize, List<Likes> likes) {
         List<List<Likes>> list = deduplicationLikes(likes);
         List<List<List<Likes>>> partition = ListUtils.partition(list, pageSize);
-        if (partition.size() == 0) {
+        if (partition.size() == 0||page>partition.size()) {
             //获取的数据为空，返回一个空列表
-            return new LinkedList<>();
+            return new SimplePage<>(likes.size(), null);
         }
         List<List<Likes>> lists = partition.get(page - 1);
         //以上实现了分页
@@ -120,7 +120,8 @@ public class AdminLikeController {
             simpleLikesInfo.setLikesSchoolName(schoolNames);
             results.add(simpleLikesInfo);
         }
-        return results;
+
+        return new SimplePage<Object>(likes.size(), results);
     }
 
     public List<List<Likes>> deduplicationLikes(List<Likes> likes) {
@@ -136,6 +137,7 @@ public class AdminLikeController {
             map.put(likeuserid, list);
         }
         List<List<Likes>> list = new LinkedList<>(map.values());
+
         return list;
     }
 
@@ -154,7 +156,7 @@ public class AdminLikeController {
         simpleLikesInfo.setSchoolId(likeUserId);
         if (schoolName == null) {
             User user = userService.findById(likeUserId);
-            simpleLikesInfo.setSchoolName(user.getSchoolname());
+            schoolName = user.getSchoolname();
             idToSchoolNameCache.put(likeUserId, user.getSchoolname());
         }
         simpleLikesInfo.setSchoolName(schoolName);
@@ -210,9 +212,9 @@ public class AdminLikeController {
     }
 
 
-    @GetMapping("/search")
-    @ApiOperation(value = "签约意向管理->搜索", notes = "输入高校名进行搜索")
-    public Object search(@RequestParam(value = "keyWord", required = false) String schoolName,
+    @GetMapping("/listSearch")
+    @ApiOperation(value = "签约意向管理->搜索/分页显示", notes = "输入高校名进行搜索")
+    public Object search(@RequestParam(value = "schoolName", required = false) String schoolName,
                          @ApiParam(example = "1", value = "分页使用，要第几页的数据") @RequestParam(required = false) Integer page,
                          @ApiParam(example = "10", value = "分页使用，要该页的几条数据") @RequestParam(required = false) Integer pageSize,
                          @ApiParam(example = "1", value = "排序方式，从数据库中要的数据使用什么进行排序，如 add_time,update_time") @RequestParam(defaultValue = "add_time", required = false) String sort,
@@ -223,9 +225,8 @@ public class AdminLikeController {
             List<Likes> likes = likeService.querySelective(null, user.getId(), null, page, pageSize, sort, order);
             tmpLikes.addAll(likes);
         }
-        List<SimpleLikesInfo> result = getSimpleLikesInfos(page, pageSize, tmpLikes);
+        SimplePage<Object> result = getSimpleLikesInfos(page, pageSize, tmpLikes);
         return ResponseUtil.build(HttpStatus.OK.value(), "搜索该高校意向列表成功！", result);
-
     }
 
 
@@ -290,15 +291,6 @@ public class AdminLikeController {
         return ResponseUtil.build(HttpStatus.OK.value(), "匹配意向成功！", matchs);
     }
 
-//    @GetMapping("/all")
-//    @PreAuthorize("hasAnyRole('ADMINISTRATOR')")
-//    @ApiOperation("获取所有意向")
-//    public String all() {
-//        List<Likes> users = likeService.queryAll();
-//        return ResponseUtil.build(HttpStatus.OK.value(), "获取所有意向成功！", users);
-//    }
-
-
     @ApiOperation(value = "签约意向管理->导出签约意向表", notes = "签约意向管理->导出签约意向表")
     @GetMapping("/exportLikesForm")
     public void exportLikesForm(HttpServletResponse response) throws IOException {
@@ -310,6 +302,23 @@ public class AdminLikeController {
         workbook.write(outputStream);
         outputStream.close();
         workbook.close();
+    }
+
+    @ApiOperation(value = "签约意向管理->提醒", notes = "签约意向管理->发送消息提醒高校参与意向选择")
+    @PostMapping("/remindSchools")
+    public String remindSchools()  {
+        List<User> users = userService.querySelective(null, null, null, null, null);
+        for (User user : users) {
+            try {
+                emailService.send(user.getUsername(),"!签约提醒!","时间马上就要截至了,记得来签约~");
+//                System.out.println(user);
+            } catch (EmailNotFoundException e) {
+                logger.warn("该邮箱号不存在:"+user.getUsername());
+//                System.out.println(user.getUsername());
+//                e.printStackTrace();
+            }
+        }
+        return ResponseUtil.build(HttpStatus.OK.value(),"提醒成功!",null);
     }
 
 }

@@ -17,6 +17,8 @@ import com.school.utils.RoleEnum;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
@@ -43,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 //@Transactional 加上后代理会冲突
 public class UserServiceImpl implements UserDetailsService {
+    private Logger logger = LoggerFactory.getLogger(getClass());
 
     @Value("${password.encoded.prefix:}")
     private String encodedPasswordPrefix;
@@ -263,9 +266,6 @@ public class UserServiceImpl implements UserDetailsService {
         if (StringUtils.hasText(telephone)) {
             user.setTelephone(telephone);
         }
-        if (StringUtils.hasText(email)) {
-            user.setEmail(email);
-        }
         return update(user);
 
     }
@@ -288,10 +288,10 @@ public class UserServiceImpl implements UserDetailsService {
                     String telephone,
                     String schoolCode,
                     String email) throws UsernameAlreadyExistException {
-        add(username,password,schoolName,contact,address,telephone,schoolCode,email,null);
+        add(username, password, schoolName, contact, address, telephone, schoolCode, email, null);
     }
 
-    public void importRegistrationForm(MultipartFile file) throws FileFormattingException, IOException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ExcelDataException, EmailNotFoundException, UsernameAlreadyExistException {
+    public void importRegistrationForm(MultipartFile file) throws FileFormattingException, IOException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ExcelDataException, UsernameAlreadyExistException {
         String originalFilename = file.getOriginalFilename();//原本文件的名字
         String format = originalFilename.substring(originalFilename.lastIndexOf("."));
         AssertUtil.isExcel(format);
@@ -349,7 +349,12 @@ public class UserServiceImpl implements UserDetailsService {
                 }
                 String defaultPassword = generateDefaultPassword();
                 user.setPassword(defaultPassword);
-                emailService.sendVerificationCode("签约系统临时授权码", "签约系统临时授权码(3天内有效，请尽快重设您的密码)", user.getUsername(), 3, TimeUnit.DAYS);
+                try {
+                    emailService.sendVerificationCode("签约系统临时授权码", "签约系统临时授权码(3天内有效，请尽快重设您的密码)", user.getUsername(), 3, TimeUnit.DAYS);
+                } catch (EmailNotFoundException e) {
+                    logger.warn("邮箱号有误,无法发送邮件到指定用户:" + user.getUsername());
+                    continue;
+                }
                 add(user, RoleEnum.USER.value());
                 System.out.println(user.toString());
             }
@@ -431,8 +436,21 @@ public class UserServiceImpl implements UserDetailsService {
         user.setAddress(address);
         user.setTelephone(telephone);
         user.setSchoolcode(schoolCode);
-        user.setEmail(email);
+//        user.setEmail(email);
         user.setProfession(profession);
         add(user, RoleEnum.USER.value());
+    }
+
+    public Long count() {
+       return count(null);
+    }
+
+    public Long count(String schoolName) {
+        UserExample userExample = new UserExample();
+        UserExample.Criteria criteria = userExample.createCriteria();
+        if (StringUtils.hasText(schoolName)) {
+            criteria.andSchoolnameEqualTo(schoolName);
+        }
+        return userMapper.countByExample(userExample);
     }
 }

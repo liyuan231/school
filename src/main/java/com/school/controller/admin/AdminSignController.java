@@ -1,6 +1,7 @@
 package com.school.controller.admin;
 
 import com.school.component.security.UserServiceImpl;
+import com.school.dto.SimplePage;
 import com.school.dto.SimpleSignInfo;
 import com.school.exception.SignNotFoundException;
 import com.school.exception.UserNotFoundException;
@@ -12,6 +13,7 @@ import com.school.utils.ResponseUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import org.apache.commons.collections4.ListUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,8 +41,6 @@ public class AdminSignController {
     }
 
 
-
-
     @GetMapping("/list")
     @ApiOperation(value = "查询签约", notes = "主要用于管理端分页显示，也是为了支持管理端的搜索功能，搜索某一用户喜欢谁或被谁意向")
     public Object list(@ApiParam(example = "1", value = "分页使用，要第几页的数据") @RequestParam(value = "page", required = false) Integer page,
@@ -57,16 +57,43 @@ public class AdminSignController {
         return ResponseUtil.build(HttpStatus.OK.value(), "获取签约列表成功！", simpleSignInfos);
     }
 
-    @GetMapping("/search")
-    @ApiOperation(value = "搜索", notes = "搜索签约名单")
-    public String search(@ApiParam(example = "关键字", value = "关键字") @RequestParam("schoolName") String schoolName,
+    @GetMapping("/listSearch")
+    @ApiOperation(value = "签约公示->搜索/分页显示", notes = "签约公示->搜索/分页显示")
+    public String search(@ApiParam(example = "schoolName", value = "schoolName") @RequestParam(value = "schoolName", required = false) String schoolName,
                          @ApiParam(example = "1", value = "分页使用，要第几页的数据") @RequestParam(value = "page", required = false) Integer page,
                          @ApiParam(example = "10", value = "分页使用，要该页的几条数据") @RequestParam(value = "pageSize", required = false) Integer pageSize,
                          @ApiParam(example = "1", value = "排序方式，从数据库中要的数据使用什么进行排序，如 add_time,update_time") @RequestParam(defaultValue = "add_time") String sort,
                          @ApiParam(example = "desc", value = "排序方式，升序asc还是降序desc") @RequestParam(defaultValue = "desc") String order) {
-        List<Sign> signs = signService.querySelective(page, pageSize, sort, order);
-        List<SimpleSignInfo> simpleSignInfos = chooseSign(signs, schoolName);
-        return ResponseUtil.build(HttpStatus.OK.value(), "获取该关键字学校的签约结果成功！",simpleSignInfos);
+        List<User> users = userService.querySelective(schoolName, null, null, sort, order);
+        List<Sign> tmpSigns = new LinkedList<>();
+        for (User user : users) {
+            List<Sign> signs = signService.findBySignUserId(user.getId());
+            tmpSigns.addAll(signs);
+        }
+        //显示第page页pageSize条,现在目标是将这pageSize条数据转换成simpleSignInfos
+        SimplePage<List<SimpleSignInfo>> result = getSimpleLikesInfos(page, pageSize, tmpSigns);
+        return ResponseUtil.build(HttpStatus.OK.value(), "获取该关键字学校的签约结果成功！", result);
+    }
+
+    private SimplePage<List<SimpleSignInfo>> getSimpleLikesInfos(Integer page, Integer pageSize, List<Sign> list) {
+        List<List<Sign>> partition = ListUtils.partition(list, pageSize);
+        if (partition.size() == 0||page>partition.size()) {
+            return new SimplePage<>(list.size(), null);
+        }
+        //完成分页
+        List<Sign> signs = partition.get(page - 1);
+        List<SimpleSignInfo> result = new LinkedList<>();
+        for (Sign sign : signs) {
+            SimpleSignInfo simpleSignInfo = new SimpleSignInfo();
+            User signUser = userService.findById(sign.getSignuserid());
+            User signedUser = userService.findById(sign.getSigneduserid());
+            simpleSignInfo.setSignId(sign.getId());
+            simpleSignInfo.setSchoolName(signUser.getSchoolname());
+            simpleSignInfo.setSignedSchoolName(signedUser.getSchoolname());
+            simpleSignInfo.setSignTime(sign.getUpdateTime());
+            result.add(simpleSignInfo);
+        }
+        return new SimplePage<>(list.size(), result);
     }
 
     /**

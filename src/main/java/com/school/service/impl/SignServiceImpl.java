@@ -4,12 +4,10 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.school.component.security.UserServiceImpl;
 import com.school.dao.SignMapper;
-import com.school.dto.SimpleSignInfo;
 import com.school.exception.*;
 import com.school.model.Sign;
 import com.school.model.SignExample;
 import com.school.model.User;
-import com.school.utils.RoleEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +15,6 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
-import java.util.LinkedList;
 import java.util.List;
 
 @Service
@@ -168,6 +165,14 @@ public class SignServiceImpl {
         return signMapper.selectByExampleSelective(signExample);
     }
 
+    public List<Sign> findBySignUserId(Integer userId) {
+        SignExample signExample = new SignExample();
+        SignExample.Criteria criteria = signExample.createCriteria();
+        criteria.andSignuseridEqualTo(userId);
+        criteria.andDeletedEqualTo(false);
+        return signMapper.selectByExampleSelective(signExample);
+    }
+
     public List<Sign> findBySignedUserId() {
         SignExample signExample = new SignExample();
         SignExample.Criteria criteria = signExample.createCriteria();
@@ -187,15 +192,5 @@ public class SignServiceImpl {
 
     public List<Sign> querySelective(Integer page, Integer limit, String sort, String order) {
         return querySelective(null, null, null, page, limit, sort, order);
-    }
-
-    public List<Sign> querySelective(String schoolName, Integer page, Integer pageSize, String sort, String order) {
-        List<Sign> signs = querySelective(page, pageSize, sort, order);
-        List<SimpleSignInfo> simpleSignInfos = new LinkedList<>();
-        for (Sign sign : signs) {
-
-        }
-        return signs;
-
     }
 }

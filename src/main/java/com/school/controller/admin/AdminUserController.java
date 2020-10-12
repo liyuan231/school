@@ -1,11 +1,13 @@
 package com.school.controller.admin;
 
 import com.school.component.security.UserServiceImpl;
+import com.school.dto.SimplePage;
 import com.school.dto.SimpleUserInfo;
 import com.school.dto.SimpleUserInfoPlus;
 import com.school.exception.*;
 import com.school.model.Pics;
 import com.school.model.User;
+import com.school.service.impl.EmailServiceImpl;
 import com.school.service.impl.PicsServiceImpl;
 import com.school.utils.FileEnum;
 import com.school.utils.ResponseUtil;
@@ -28,6 +30,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 至此，管理端用户部分应是写完了
@@ -46,6 +49,8 @@ public class AdminUserController {
 
     @Value("${spring.file.path}")
     private String springFilePath;
+    @Autowired
+    private EmailServiceImpl emailService;
 
     //
 //    @GetMapping("/list")
@@ -61,27 +66,17 @@ public class AdminUserController {
 //        userService.clearPassword(users);
 //        return ResponseUtil.build(HttpStatus.OK.value(), "获取高校信息成功！", users);
 //    }
-    @GetMapping("/list")
-    @ApiOperation(value = "查询列表（分页）", notes = "管理端分页显示所有用户")
-    public String list(@ApiParam(example = "1", value = "分页使用，要第几页的数据") @RequestParam(value = "page", required = false) Integer page,
-                       @ApiParam(example = "10", value = "分页使用，要该页的几条数据") @RequestParam(value = "pageSize", required = false) Integer limit,
-                       @ApiParam(example = "1", value = "排序方式，从数据库中要的数据使用什么进行排序，如 add_time,update_time") @RequestParam(defaultValue = "add_time") String sort,
-                       @ApiParam(example = "desc", value = "排序方式，升序asc还是降序desc") @RequestParam(defaultValue = "desc") String order) {
-        List<User> userList = userService.querySelective(page, limit, sort, order);
-        List<SimpleUserInfo> list = new LinkedList<>();
-        for (User user : userList) {
-            SimpleUserInfo simpleUserInfo = new SimpleUserInfo();
-            complete(user, simpleUserInfo);
-            list.add(simpleUserInfo);
-        }
-        return ResponseUtil.build(HttpStatus.OK.value(), "获取第" + page + "页列表信息成功!", list);
-    }
 
+//    @GetMapping("/count")
+//    @ApiOperation(value = "获取所有用户的总数", notes = "获取所有用户的总数，分页使用")
+//    public Long count() {
+//        return userService.count();
+//    }
     private void complete(User user, SimpleUserInfo simpleUserInfo) {
         simpleUserInfo.setId(user.getId());
         simpleUserInfo.setAddress(user.getAddress());
         simpleUserInfo.setContact(user.getContact());
-        simpleUserInfo.setEmail(user.getEmail());
+//        simpleUserInfo.setEmail(user.getEmail());
         simpleUserInfo.setTelephone(user.getTelephone());
         simpleUserInfo.setUsername(user.getUsername());
         simpleUserInfo.setSchoolName(user.getSchoolname());
@@ -112,9 +107,10 @@ public class AdminUserController {
                          @ApiParam(example = "地址", value = "学校详细地址") @RequestParam(value = "address", required = false) String address,
                          @ApiParam(example = "111", value = "电话号码") @RequestParam(value = "telephone", required = false) String telephone,
                          @ApiParam(example = "111", value = "学校代码") @RequestParam(value = "schoolCode", required = false) String schoolCode,
-                         @ApiParam(example = "11@qq.com", value = "学校邮箱") @RequestParam(value = "email", required = false) String email,
-                         @ApiParam(example = "教授",value = "职务")@RequestParam(value = "profession",required = false)String profession) throws UsernameAlreadyExistException {
-        userService.add(username, password, schoolName, contact, address, telephone, schoolCode, email,profession);
+//                         @ApiParam(example = "11@qq.com", value = "学校邮箱") @RequestParam(value = "email", required = false) String email,
+                         @ApiParam(example = "教授", value = "职务") @RequestParam(value = "profession", required = false) String profession) throws UsernameAlreadyExistException, EmailNotFoundException {
+        userService.add(username, password, schoolName, contact, address, telephone, schoolCode, null, profession);
+        emailService.sendVerificationCode("签约系统", "用户临时授权码(三天内有效)", username, 3, TimeUnit.DAYS);
         return ResponseUtil.build(HttpStatus.OK.value(), "添加一个用户成功!", null);
     }
 
@@ -197,14 +193,33 @@ public class AdminUserController {
     }
 
 
-    @GetMapping("/user/search")
-    @ApiOperation(value = "搜索", notes = "输入搞高校名进行搜索")
+//    @GetMapping("/list")
+//    @ApiOperation(value = "查询列表（分页）", notes = "管理端分页显示所有用户")
+//    public String list(@ApiParam(example = "1", value = "分页使用，要第几页的数据") @RequestParam(value = "page", required = false) Integer page,
+//                       @ApiParam(example = "10", value = "分页使用，要该页的几条数据") @RequestParam(value = "pageSize", required = false) Integer limit,
+//                       @ApiParam(example = "1", value = "排序方式，从数据库中要的数据使用什么进行排序，如 add_time,update_time") @RequestParam(defaultValue = "add_time") String sort,
+//                       @ApiParam(example = "desc", value = "排序方式，升序asc还是降序desc") @RequestParam(defaultValue = "desc") String order) {
+//        List<User> userList = userService.querySelective(page, limit, sort, order);
+//        Long size = userService.count();
+//        List<SimpleUserInfo> list = new LinkedList<>();
+//        for (User user : userList) {
+//            SimpleUserInfo simpleUserInfo = new SimpleUserInfo();
+//            complete(user, simpleUserInfo);
+//            list.add(simpleUserInfo);
+//        }
+//        SimplePage simplePage = new SimplePage(Math.toIntExact(size), list);
+//        return ResponseUtil.build(HttpStatus.OK.value(), "获取第" + page + "页列表信息成功!", simplePage);
+//    }
+
+    @GetMapping("/listSearch")
+    @ApiOperation(value = "高校信息管理->搜索/分页", notes = "输入搞高校名进行搜索")
     public String search(@RequestParam(required = false) String schoolName,
                          @ApiParam(example = "1", value = "分页使用，要第几页的数据") @RequestParam(value = "page", required = false) Integer page,
                          @ApiParam(example = "10", value = "分页使用，要该页的几条数据") @RequestParam(value = "pageSize", required = false) Integer limit,
                          @ApiParam(example = "1", value = "排序方式，从数据库中要的数据使用什么进行排序，如 add_time,update_time") @RequestParam(defaultValue = "add_time") String sort,
                          @ApiParam(example = "desc", value = "排序方式，升序asc还是降序desc") @RequestParam(defaultValue = "desc") String order) {
         List<User> users = userService.querySelective(schoolName, page, limit, sort, order);
+        Long size = userService.count(schoolName);
         userService.clearPassword(users);
         List<SimpleUserInfo> userInfos = new LinkedList<>();
         for (User user : users) {
@@ -212,7 +227,8 @@ public class AdminUserController {
             complete(user, simpleUserInfo);
             userInfos.add(simpleUserInfo);
         }
-        return ResponseUtil.build(HttpStatus.OK.value(), "搜索成功！", userInfos);
+        SimplePage simplePage = new SimplePage(Math.toIntExact(size), userInfos);
+        return ResponseUtil.build(HttpStatus.OK.value(), "搜索成功！", simplePage);
     }
 
 

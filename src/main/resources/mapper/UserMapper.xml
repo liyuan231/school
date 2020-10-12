@@ -22,7 +22,6 @@
     <result column="deleted" jdbcType="BIT" property="deleted" />
     <result column="avatarUrl" jdbcType="VARCHAR" property="avatarurl" />
     <result column="accountStatus" jdbcType="INTEGER" property="accountstatus" />
-    <result column="email" jdbcType="VARCHAR" property="email" />
     <result column="profession" jdbcType="VARCHAR" property="profession" />
   </resultMap>
   <sql id="Example_Where_Clause">
@@ -98,7 +97,7 @@
     -->
     id, username, `password`, schoolname, contact, address, telephone, update_time, schoolCode, 
     `location`, add_time, lastLoginIp, lastLoginTime, deleted, avatarUrl, accountStatus, 
-    email, profession
+    profession
   </sql>
   <select id="selectByExample" parameterType="com.school.model.UserExample" resultMap="BaseResultMap">
     <!--
@@ -224,13 +223,13 @@
       update_time, schoolCode, `location`, 
       add_time, lastLoginIp, lastLoginTime, 
       deleted, avatarUrl, accountStatus, 
-      email, profession)
+      profession)
     values (#{username,jdbcType=VARCHAR}, #{password,jdbcType=VARCHAR}, #{schoolname,jdbcType=VARCHAR}, 
       #{contact,jdbcType=VARCHAR}, #{address,jdbcType=VARCHAR}, #{telephone,jdbcType=VARCHAR}, 
       #{updateTime,jdbcType=TIMESTAMP}, #{schoolcode,jdbcType=VARCHAR}, #{location,jdbcType=VARCHAR}, 
       #{addTime,jdbcType=TIMESTAMP}, #{lastloginip,jdbcType=VARCHAR}, #{lastlogintime,jdbcType=TIMESTAMP}, 
       #{deleted,jdbcType=BIT}, #{avatarurl,jdbcType=VARCHAR}, #{accountstatus,jdbcType=INTEGER}, 
-      #{email,jdbcType=VARCHAR}, #{profession,jdbcType=VARCHAR})
+      #{profession,jdbcType=VARCHAR})
   </insert>
   <insert id="insertSelective" parameterType="com.school.model.User">
     <!--
@@ -287,9 +286,6 @@
       <if test="accountstatus != null">
         accountStatus,
       </if>
-      <if test="email != null">
-        email,
-      </if>
       <if test="profession != null">
         profession,
       </if>
@@ -339,9 +335,6 @@
       </if>
       <if test="accountstatus != null">
         #{accountstatus,jdbcType=INTEGER},
-      </if>
-      <if test="email != null">
-        #{email,jdbcType=VARCHAR},
       </if>
       <if test="profession != null">
         #{profession,jdbcType=VARCHAR},
@@ -413,9 +406,6 @@
       <if test="record.accountstatus != null">
         accountStatus = #{record.accountstatus,jdbcType=INTEGER},
       </if>
-      <if test="record.email != null">
-        email = #{record.email,jdbcType=VARCHAR},
-      </if>
       <if test="record.profession != null">
         profession = #{record.profession,jdbcType=VARCHAR},
       </if>
@@ -446,7 +436,6 @@
       deleted = #{record.deleted,jdbcType=BIT},
       avatarUrl = #{record.avatarurl,jdbcType=VARCHAR},
       accountStatus = #{record.accountstatus,jdbcType=INTEGER},
-      email = #{record.email,jdbcType=VARCHAR},
       profession = #{record.profession,jdbcType=VARCHAR}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
@@ -504,9 +493,6 @@
       <if test="accountstatus != null">
         accountStatus = #{accountstatus,jdbcType=INTEGER},
       </if>
-      <if test="email != null">
-        email = #{email,jdbcType=VARCHAR},
-      </if>
       <if test="profession != null">
         profession = #{profession,jdbcType=VARCHAR},
       </if>
@@ -534,7 +520,6 @@
       deleted = #{deleted,jdbcType=BIT},
       avatarUrl = #{avatarurl,jdbcType=VARCHAR},
       accountStatus = #{accountstatus,jdbcType=INTEGER},
-      email = #{email,jdbcType=VARCHAR},
       profession = #{profession,jdbcType=VARCHAR}
     where id = #{id,jdbcType=INTEGER}
   </update>
