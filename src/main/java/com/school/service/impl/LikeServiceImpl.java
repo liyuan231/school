@@ -152,7 +152,7 @@ public class LikeServiceImpl {
         likes.setDeleted(true);
         update(likes);
     }
-
+//查询对我有意向的用户
     public List<Likes> matchByLikedUserId() {
         User user = userService.retrieveUserByToken();
         LikesExample likesExample = new LikesExample();
@@ -161,7 +161,7 @@ public class LikeServiceImpl {
         criteria.andLikeduseridEqualTo(user.getId());
         return likesMapper.selectByExample(likesExample);
     }
-
+//查询我有意向的用户
     public List<Likes> matchByLikeUserId() {
         User user = userService.retrieveUserByToken();
         LikesExample likesExample = new LikesExample();
@@ -176,7 +176,7 @@ public class LikeServiceImpl {
         like(user.getId(), likedUserId);
     }
 
-
+//查询互相有意向的用户
     public List<Likes> matchByUserId() {
         User user = userService.retrieveUserByToken();
         Integer userId = user.getId();

@@ -446,7 +446,7 @@ public class UserServiceImpl implements UserDetailsService {
         return pageInfo.getList();
     }
 //    学校信息模糊查询
-    public List<User> querySelectiveAllDim(String name){
+    public List<User> querySelectiveAllDim(String name,Integer page, Integer limit){
         UserExample userExample1 = new UserExample();
         UserExample userExample2 = new UserExample();
         UserExample userExample3 = new UserExample();
@@ -455,7 +455,7 @@ public class UserServiceImpl implements UserDetailsService {
         userExample1.createCriteria().andTelephoneLike("%" + name + "%");
         userExample2.createCriteria().andSchoolnameLike("%" + name + "%");
         userExample3.createCriteria().andContactLike("%" + name + "%");
-        userExample4.createCriteria().andEmailLike("%" + name + "%");
+//        userExample4.createCriteria().andEmailLike("%" + name + "%");
         userExample5.createCriteria().andAddressLike("%" + name + "%");
 //        UserExample.Criteria criteria = userExample.createCriteria();
 //        criteria.andTelephoneLike("%" + name + "%");
@@ -468,17 +468,27 @@ public class UserServiceImpl implements UserDetailsService {
         List<User> user1 = userMapper.selectByExampleSelective(userExample1);
         List<User> user2 = userMapper.selectByExampleSelective(userExample2);
         List<User> user3 = userMapper.selectByExampleSelective(userExample3);
-        List<User> user4 = userMapper.selectByExampleSelective(userExample4);
+//        List<User> user4 = userMapper.selectByExampleSelective(userExample4);
         List<User> user5 = userMapper.selectByExampleSelective(userExample5);
         Set set = new HashSet();
         set.addAll(user1);
         set.addAll(user2);
         set.addAll(user3);
-        set.addAll(user4);
+//        set.addAll(user4);
         set.addAll(user5);
         List<User> user = new ArrayList<>();
         user.addAll(set);
-        return user;
+        if (page != null || limit != null) {
+            if (page == null) {
+                PageHelper.startPage(1, limit);
+            } else if (limit == null) {
+                PageHelper.startPage(page, 10);
+            } else {
+                PageHelper.startPage(page, limit);
+            }
+        }
+        PageInfo<User> pageInfo = new PageInfo<>(user);
+        return pageInfo.getList();
     }
     public List<User> querySelectiveBySchoolnameDim(String schoolname,Integer page,
                                                     Integer limit){

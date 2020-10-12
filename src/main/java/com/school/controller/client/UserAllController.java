@@ -38,15 +38,17 @@ public class UserAllController {
     @GetMapping("select/like")
     @ApiOperation(value = "学校信息模糊查询", notes = "模糊查询")
 //    @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
-    public Object list(@ApiParam(value = "关键字", example = "1") @RequestParam(defaultValue = "1") String key) {
-        List<User> userList = userService.querySelectiveAllDim(key);
+    public Object list1(@ApiParam(value = "关键字", example = "1") @RequestParam(defaultValue = "1") String key,
+                       @ApiParam(value = "分页，要第几页的数据", example = "1") @RequestParam(defaultValue = "1") Integer page,
+                       @ApiParam(value = "分页，该页数据要多少条", example = "10") @RequestParam(defaultValue = "10") Integer limit) {
+        List<User> userList = userService.querySelectiveAllDim(key,page,limit);
         return ResponseUtil.build(HttpStatus.OK.value(), "获取列表成功！", userList);
     }
 
     @GetMapping("select/like{schoolname}")
     @ApiOperation(value = "学校名称模糊查询", notes = "模糊查询")
 //    @PreAuthorize("hasAnyRole('ADMINISTRATOR','USER')")
-    public Object list(@ApiParam(value = "关键字", example = "1") @RequestParam(defaultValue = "1") String key,
+    public Object list2(@ApiParam(value = "关键字", example = "1") @RequestParam(defaultValue = "1") String key,
                        @ApiParam(value = "分页，要第几页的数据", example = "1") @RequestParam(defaultValue = "1") Integer page,
                        @ApiParam(value = "分页，该页数据要多少条", example = "10") @RequestParam(defaultValue = "10") Integer limit) {
         List<User> userList = userService.querySelectiveBySchoolnameDim(key,page,limit);
